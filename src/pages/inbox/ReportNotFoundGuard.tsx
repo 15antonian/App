@@ -50,8 +50,14 @@ function ReportNotFoundGuard({children}: ReportNotFoundGuardProps) {
     const isLoading = isLoadingApp !== false || isLoadingReportData || (!isOffline && !!isLoadingInitialReportActions);
     const reportExists = !!reportID || isOptimisticDelete || userLeavingStatus;
 
+    // When the report object hasn't arrived yet but OpenReport is still in-flight
+    // (isLoadingInitialReportActions is true), treat it as loading rather than not-found.
+    // This prevents the ReportNotFoundGuard from firing prematurely on iOS mobile web
+    // where the guard evaluates before OpenReport completes (Expensify/App#88559).
+    const isReportLoadInFlight = !reportExists && !!isLoadingInitialReportActions;
+
     // eslint-disable-next-line rulesdir/no-negated-variables
-    const shouldShowNotFoundPage = !deleteTransactionNavigateBackUrl && (isInvalidReportPath || (!isLoading && !reportExists));
+    const shouldShowNotFoundPage = !deleteTransactionNavigateBackUrl && (isInvalidReportPath || (!isLoading && !isReportLoadInFlight && !reportExists));
 
     useEffect(() => {
         if (!shouldShowNotFoundPage) {
