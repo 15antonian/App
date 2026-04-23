@@ -306,7 +306,7 @@ function MoneyRequestConfirmationListFooter({
     // and it is not a distance request.
     const canModifyTaxFields = !isReadOnly && !isDistanceRequest && !isPerDiemRequest;
     // A flag for showing the billable field
-    const shouldShowBillable = policy?.disabledFields?.defaultBillable === false;
+    const shouldShowBillable = policy?.disabledFields?.defaultBillable !== true;
     const shouldShowReimbursable =
         (isPolicyExpenseChat || isTrackExpense) && !!policy && policy?.disabledFields?.reimbursable !== true && !isManagedCardTransaction(transaction) && !isTypeInvoice;
 
