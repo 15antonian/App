@@ -166,8 +166,10 @@ function GPSButtons({navigateToNextStep, setShouldShowStartError, setShouldShowP
                 danger
                 title={translate('gps.discardDistanceTrackingModal.title')}
                 isVisible={showDiscardConfirmation}
-                onConfirm={() => {
+                // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                onConfirm={async () => {
                     setShowDiscardConfirmation(false);
+                    await stopGpsTripUtil(isOffline, true);
                     resetGPSDraftDetails();
                 }}
                 onCancel={() => setShowDiscardConfirmation(false)}
