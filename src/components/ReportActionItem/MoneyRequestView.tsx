@@ -436,7 +436,8 @@ function MoneyRequestView({
             report: moneyRequestReport,
             policy,
         });
-    const shouldShowAttendees = shouldShowAttendeesTransactionUtils(iouType, policy);
+    const hasStoredAttendees = Array.isArray(transaction?.comment?.attendees) && transaction.comment.attendees.length > 0;
+    const shouldShowAttendees = shouldShowAttendeesTransactionUtils(iouType, policy) || hasStoredAttendees;
 
     const tripID = getTripIDFromTransactionParentReportID(parentReport?.parentReportID);
     const shouldShowViewTripDetails = hasReservationList(transaction) && !!tripID;
@@ -1179,8 +1180,8 @@ function MoneyRequestView({
                             }}
                             brickRoadIndicator={getErrorForField('attendees') ? CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR : undefined}
                             errorText={getErrorForField('attendees')}
-                            interactive={canEdit}
-                            shouldShowRightIcon={canEdit}
+                            interactive={canEdit && shouldShowAttendeesTransactionUtils(iouType, policy)}
+                            shouldShowRightIcon={canEdit && shouldShowAttendeesTransactionUtils(iouType, policy)}
                             shouldRenderAsHTML
                             copyValue={attendeesCopyValue}
                             copyable={!!attendeesCopyValue}
