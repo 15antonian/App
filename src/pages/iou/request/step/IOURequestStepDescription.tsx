@@ -112,13 +112,18 @@ function IOURequestStepDescription({
                 addErrorMessage(errors, 'moneyRequestComment', translate('common.error.characterLimitExceedCounter', values.moneyRequestComment.length, CONST.DESCRIPTION_LIMIT));
             }
 
-            if (isDescriptionRequired && !values.moneyRequestComment) {
+            // When editing, allow saving an unchanged blank description — the updateComment handler
+            // already short-circuits the no-op case, and the missingComment violation on the expense
+            // is the canonical enforcer for the workspace rule. Only block when the user actively
+            // clears a non-empty description (value changed) or is creating a new expense.
+            const isUnchangedEdit = isEditing && values.moneyRequestComment.trim() === currentDescriptionInMarkdown.trim();
+            if (isDescriptionRequired && !values.moneyRequestComment && !isUnchangedEdit) {
                 addErrorMessage(errors, INPUT_IDS.MONEY_REQUEST_COMMENT, translate('common.error.fieldRequired'));
             }
 
             return errors;
         },
-        [isDescriptionRequired, translate],
+        [isDescriptionRequired, translate, isEditing, currentDescriptionInMarkdown],
     );
 
     const navigateBack = useCallback(() => {
