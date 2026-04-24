@@ -681,6 +681,37 @@ const ViolationsUtils = {
         if (hasTaxOutOfPolicyViolation && !shouldAddTaxOutOfPolicy) {
             newTransactionViolations = reject(newTransactionViolations, {name: CONST.VIOLATIONS.TAX_OUT_OF_POLICY});
         }
+
+        // Optimistically generate the SmartScan-variant modifiedAmount violation when the user edits
+        // the expense amount above the scanned value while offline. The guard uses didReceiptScanSucceed
+        // (receipt.state === SCAN_COMPLETE) rather than isScanRequest (which requires amount === 0 and
+        // returns false after SmartScan writes the scanned amount back to transaction.amount).
+        const isSmartScanComplete = TransactionUtils.didReceiptScanSucceed(updatedTransaction);
+        const isSmartScanModifiedAmountViolation = (v: TransactionViolation) =>
+            v.name === CONST.VIOLATIONS.MODIFIED_AMOUNT && v.data?.type !== CONST.MODIFIED_AMOUNT_VIOLATION_DATA.DISTANCE && v.data?.type !== CONST.MODIFIED_AMOUNT_VIOLATION_DATA.CARD;
+        const hasSmartScanModifiedAmountViolation = newTransactionViolations.some(isSmartScanModifiedAmountViolation);
+
+        if (isSmartScanComplete && hasValidModifiedAmount(updatedTransaction) && !isDistanceRequest && !TransactionUtils.isExpensifyCardTransaction(updatedTransaction)) {
+            const scannedExpenseAmount = -updatedTransaction.amount;
+            const modifiedExpenseAmount = -Number(updatedTransaction.modifiedAmount);
+            const shouldShowModifiedAmountViolation = scannedExpenseAmount > 0 && modifiedExpenseAmount > scannedExpenseAmount;
+
+            if (shouldShowModifiedAmountViolation && !hasSmartScanModifiedAmountViolation) {
+                newTransactionViolations.push({
+                    name: CONST.VIOLATIONS.MODIFIED_AMOUNT,
+                    type: CONST.VIOLATION_TYPES.NOTICE,
+                    showInReview: true,
+                    data: {
+                        displayPercentVariance: Math.round(((modifiedExpenseAmount - scannedExpenseAmount) / scannedExpenseAmount) * 100),
+                    },
+                });
+            }
+
+            if (!shouldShowModifiedAmountViolation && hasSmartScanModifiedAmountViolation) {
+                newTransactionViolations = newTransactionViolations.filter((v) => !isSmartScanModifiedAmountViolation(v));
+            }
+        }
+
         return {
             onyxMethod: Onyx.METHOD.SET,
             key: `${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${updatedTransaction.transactionID}`,
