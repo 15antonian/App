@@ -5388,7 +5388,12 @@ function resolveActionableMentionWhisper(
         lastActorAccountID: report.lastActorAccountID,
     };
 
-    const optimisticData: Array<OnyxUpdate<typeof ONYXKEYS.COLLECTION.REPORT_ACTIONS | typeof ONYXKEYS.COLLECTION.REPORT>> = [
+    const isInviteResolution = resolution === CONST.REPORT.ACTIONABLE_MENTION_WHISPER_RESOLUTION.INVITE;
+    const inviteeAccountIDs = isInviteResolution && ReportActionsUtils.isActionableMentionWhisper(reportAction) ? (ReportActionsUtils.getOriginalMessage(reportAction)?.inviteeAccountIDs ?? []) : [];
+    const reportMetadata = getReportMetadata(reportID);
+    const pendingChatMembers = isInviteResolution && inviteeAccountIDs.length > 0 ? getPendingChatMembers(inviteeAccountIDs, reportMetadata?.pendingChatMembers ?? [], CONST.RED_BRICK_ROAD_PENDING_ACTION.ADD) : null;
+
+    const optimisticData: Array<OnyxUpdate<typeof ONYXKEYS.COLLECTION.REPORT_ACTIONS | typeof ONYXKEYS.COLLECTION.REPORT | typeof ONYXKEYS.COLLECTION.REPORT_METADATA>> = [
         {
             onyxMethod: Onyx.METHOD.MERGE,
             key: `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`,
@@ -5404,11 +5409,45 @@ function resolveActionableMentionWhisper(
         {
             onyxMethod: Onyx.METHOD.MERGE,
             key: `${ONYXKEYS.COLLECTION.REPORT}${reportID}`,
-            value: reportUpdateDataWithPreviousLastMessage,
+            value: {
+                ...reportUpdateDataWithPreviousLastMessage,
+                ...(isInviteResolution && inviteeAccountIDs.length > 0
+                    ? {
+                          participants: inviteeAccountIDs.reduce(
+                              (acc: Participants, accountID: number) => {
+                                  acc[accountID] = {notificationPreference: getDefaultNotificationPreferenceForReport(report), role: CONST.REPORT.ROLE.MEMBER};
+                                  return acc;
+                              },
+                              {...report?.participants},
+                          ),
+                      }
+                    : {}),
+            },
         },
     ];
 
-    const failureData: Array<OnyxUpdate<typeof ONYXKEYS.COLLECTION.REPORT_ACTIONS | typeof ONYXKEYS.COLLECTION.REPORT>> = [
+    if (pendingChatMembers) {
+        optimisticData.push({
+            onyxMethod: Onyx.METHOD.MERGE,
+            key: `${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`,
+            value: {pendingChatMembers},
+        });
+    }
+
+    const successData: Array<OnyxUpdate<typeof ONYXKEYS.COLLECTION.REPORT_METADATA>> = [];
+    if (pendingChatMembers) {
+        const successPendingChatMembers =
+            reportMetadata?.pendingChatMembers?.filter(
+                (pendingMember) => !(inviteeAccountIDs.includes(Number(pendingMember.accountID)) && pendingMember.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE),
+            ) ?? null;
+        successData.push({
+            onyxMethod: Onyx.METHOD.MERGE,
+            key: `${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`,
+            value: {pendingChatMembers: successPendingChatMembers},
+        });
+    }
+
+    const failureData: Array<OnyxUpdate<typeof ONYXKEYS.COLLECTION.REPORT_ACTIONS | typeof ONYXKEYS.COLLECTION.REPORT | typeof ONYXKEYS.COLLECTION.REPORT_METADATA>> = [
         {
             onyxMethod: Onyx.METHOD.MERGE,
             key: `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`,
@@ -5428,12 +5467,30 @@ function resolveActionableMentionWhisper(
         },
     ];
 
+    if (pendingChatMembers) {
+        failureData.push({
+            onyxMethod: Onyx.METHOD.MERGE,
+            key: `${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`,
+            value: {
+                pendingChatMembers: pendingChatMembers.map((pendingChatMember) => {
+                    if (!inviteeAccountIDs.includes(Number(pendingChatMember.accountID))) {
+                        return pendingChatMember;
+                    }
+                    return {
+                        ...pendingChatMember,
+                        errors: getMicroSecondOnyxErrorWithTranslationKey('roomMembersPage.error.genericAdd'),
+                    };
+                }),
+            },
+        });
+    }
+
     const parameters: ResolveActionableMentionWhisperParams = {
         reportActionID: reportAction.reportActionID,
         resolution,
     };
 
-    API.write(WRITE_COMMANDS.RESOLVE_ACTIONABLE_MENTION_WHISPER, parameters, {optimisticData, failureData});
+    API.write(WRITE_COMMANDS.RESOLVE_ACTIONABLE_MENTION_WHISPER, parameters, {optimisticData, successData: successData.length > 0 ? successData : undefined, failureData});
 }
 
 function resolveActionableMentionConfirmWhisper(
