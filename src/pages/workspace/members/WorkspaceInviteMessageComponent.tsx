@@ -1,5 +1,5 @@
 import {Str} from 'expensify-common';
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Keyboard, View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import type {GestureResponderEvent} from 'react-native/Libraries/Types/CoreEventTypes';
@@ -92,6 +92,10 @@ function WorkspaceInviteMessageComponent({
     };
 
     const isOnyxLoading = isLoadingOnyxValue(workspaceInviteMessageDraftResult, invitedEmailsToAccountIDsDraftResult, formDataResult);
+    const wasEverLoading = useRef(isOnyxLoading);
+    if (isOnyxLoading) {
+        wasEverLoading.current = true;
+    }
     const personalDetailsOfInvitedEmails = getPersonalDetailsForAccountIDs(Object.values(invitedEmailsToAccountIDsDraft ?? {}), allPersonalDetails ?? {});
     const memberNames = Object.values(personalDetailsOfInvitedEmails)
         .map((personalDetail) => {
@@ -135,13 +139,20 @@ function WorkspaceInviteMessageComponent({
             return;
         }
 
+        // Only navigate back if Onyx keys went through a loading cycle on this mount.
+        // When the Onyx cache is warm (second+ invite attempt), isOnyxLoading starts as false so
+        // wasEverLoading stays false. In that window the draft write from DynamicWorkspaceInvitePage
+        // may not yet be reflected in the subscriber, so an empty draft here is a transient race —
+        // not a signal that the invitation was sent. Firing goBack during an incoming transition
+        // causes a double-navigation conflict that crashes the Android navigation stack.
+        if (!wasEverLoading.current) {
+            return;
+        }
+
         Navigation.goBack(backTo);
 
-        // We only want to run this useEffect when the onyx values have loaded
-        // We navigate back to the main members screen when the invitation has been sent
-        // This is decided when onyx values have loaded and if `invitedEmailsToAccountIDsDraft` is empty
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOnyxLoading]);
+    }, [isOnyxLoading, invitedEmailsToAccountIDsDraft]);
 
     const sendInvitation = () => {
         Keyboard.dismiss();
