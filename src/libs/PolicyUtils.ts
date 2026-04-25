@@ -1161,7 +1161,10 @@ function getFirstRuleApprover(approvalRules: ApprovalRule[], expenseReport: Onyx
                 continue;
             }
             if (applyWhen.field === CONST.POLICY.FIELDS.CATEGORY || applyWhen.field === CONST.POLICY.FIELDS.TAG) {
-                rulesMap[applyWhen.field][applyWhen.value] = rule.approver;
+                // Use first-rule-wins so resolution matches getCategoryApproverRule's .find() behaviour.
+                if (!rulesMap[applyWhen.field][applyWhen.value]) {
+                    rulesMap[applyWhen.field][applyWhen.value] = rule.approver;
+                }
             }
         }
     }
