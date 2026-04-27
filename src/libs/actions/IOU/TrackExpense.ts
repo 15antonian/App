@@ -1819,7 +1819,7 @@ function requestMoney(requestMoneyInformation: RequestMoneyInformation): {iouRep
             };
             // eslint-disable-next-line rulesdir/no-multiple-api-calls
             deferredAPIWrite = () => {
-                API.write(WRITE_COMMANDS.REQUEST_MONEY, parameters, onyxData);
+                API.writeWithNoDuplicatesConflictAction(WRITE_COMMANDS.REQUEST_MONEY, parameters, onyxData, (request) => request.command === WRITE_COMMANDS.REQUEST_MONEY && request.data?.transactionID === parameters.transactionID);
             };
         }
     }
