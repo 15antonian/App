@@ -52,6 +52,7 @@ import type {SelectedTabRequest} from '@src/types/onyx';
 import type {PaymentMethodType} from '@src/types/onyx/OriginalMessage';
 import type Transaction from '@src/types/onyx/Transaction';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
+import {canUseTouchScreen} from '@libs/DeviceCapabilities';
 import IOURequestStepCurrencyModal from './IOURequestStepCurrencyModal';
 import StepScreenWrapper from './StepScreenWrapper';
 import withFullTransactionOrNotFound from './withFullTransactionOrNotFound';
@@ -469,6 +470,7 @@ function IOURequestStepAmount({
             shouldShowWrapper={!!backTo || isEditing}
             includeSafeAreaPaddingBottom
             shouldShowNotFoundPage={shouldShowNotFoundPage}
+            shouldEnableKeyboardAvoidingView={!canUseTouchScreen()}
         >
             <IOURequestStepCurrencyModal
                 isPickerVisible={isCurrencyPickerVisible}
