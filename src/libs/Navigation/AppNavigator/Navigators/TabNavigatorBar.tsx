@@ -56,7 +56,11 @@ function TabNavigatorBar({state}: Pick<BottomTabBarProps, 'state'>) {
     const activeRoute = state.routes[state.index];
     const selectedTab = ROUTE_TO_NAVIGATION_TAB[activeRoute?.name ?? SCREENS.HOME] ?? NAVIGATION_TABS.HOME;
     // Check both leaves so wrapper hydration doesn't flash the tab bar on the push target (Android).
-    const isAtRoot = isAtTabRootLevel(getFocusedLeafScreenName(activeRoute?.state)) && isAtTabRootLevel(getPushTargetLeaf(activeRoute?.params));
+    // Only check getPushTargetLeaf when state is absent (pre-hydration): once mounted, params from a
+    // prior cross-tab navigate are stale and would incorrectly keep isAtRoot false after popping the RHP.
+    const isAtRoot =
+        isAtTabRootLevel(getFocusedLeafScreenName(activeRoute?.state)) &&
+        (activeRoute?.state !== undefined || isAtTabRootLevel(getPushTargetLeaf(activeRoute?.params)));
     // --- Narrow-only animation logic (hooks must run unconditionally per Rules of Hooks) ---
     // On native, screens also render the tab bar via bottomContent for swipe-back animations.
     // Delay showing this navigator's tab bar only when navigating back from a deeper screen
