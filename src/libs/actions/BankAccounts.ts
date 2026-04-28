@@ -26,6 +26,7 @@ import type SaveCorpayOnboardingDirectorInformationParams from '@libs/API/parame
 import {READ_COMMANDS, WRITE_COMMANDS} from '@libs/API/types';
 import {getMicroSecondOnyxErrorWithTranslationKey} from '@libs/ErrorUtils';
 import createDynamicRoute from '@libs/Navigation/helpers/dynamicRoutesUtils/createDynamicRoute';
+import StringUtils from '@libs/StringUtils';
 import Navigation from '@libs/Navigation/Navigation';
 import * as NetworkStore from '@libs/Network/NetworkStore';
 import type {MemberForList} from '@libs/OptionsListUtils';
@@ -673,12 +674,16 @@ function getCorpayBankAccountFields(country: string, currency: string) {
     return API.read(READ_COMMANDS.GET_CORPAY_BANK_ACCOUNT_FIELDS, parameters, onyxData);
 }
 
+function trimStringValues<T extends Record<string, unknown>>(obj: T): T {
+    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, typeof v === 'string' ? StringUtils.removeInvisibleCharacters(v) : v])) as T;
+}
+
 function createCorpayBankAccount(fields: ReimbursementAccountForm, policyID: string | undefined) {
     const parameters = {
         type: 1,
         isSavings: false,
         isWithdrawal: true,
-        inputs: JSON.stringify(fields),
+        inputs: JSON.stringify(trimStringValues(fields)),
         policyID,
     };
 
@@ -1372,7 +1377,7 @@ function createCorpayBankAccountForWalletFlow(data: InternationalBankAccountForm
     const parameters = {
         isWithdrawal: false,
         isSavings: true,
-        inputs: JSON.stringify(inputData),
+        inputs: JSON.stringify(trimStringValues(inputData)),
     };
 
     const onyxData: OnyxData<typeof ONYXKEYS.REIMBURSEMENT_ACCOUNT> = {
