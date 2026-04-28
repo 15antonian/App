@@ -1,7 +1,7 @@
 import React, {useMemo} from 'react';
 import type {TextProps} from 'react-native';
 import {HTMLContentModel, HTMLElementModel, RenderHTMLConfigProvider, TRenderEngineProvider} from 'react-native-render-html';
-import type {TNode} from 'react-native-render-html';
+import type {Element, Node, NodeWithChildren, TNode} from 'react-native-render-html';
 import useThemeStyles from '@hooks/useThemeStyles';
 import convertToLTR from '@libs/convertToLTR';
 import FontUtils from '@styles/utils/FontUtils';
@@ -224,6 +224,15 @@ function BaseHTMLEngineProvider({textSelectable = false, children, enableExperim
     // We need to memoize this prop to make it referentially stable.
     const defaultTextProps: TextProps = useMemo(() => ({selectable: textSelectable, allowFontScaling: false, textBreakStrategy: 'simple'}), [textSelectable]);
     const defaultViewProps = {style: [styles.alignItemsStart, styles.userSelectText, styles.mw100]};
+    // Drop <br> elements that are direct children of <ul>. Concierge sends HTML like
+    // <ul><li>…</li><br/></ul>, leaving an orphaned <br/> that react-native-render-html
+    // counts as a list item and renders as an empty trailing bullet.
+    const ignoreDomNode = useMemo(
+        () => (node: Node, parent: NodeWithChildren) =>
+            (node as Element).name === 'br' && (parent as Element).name === 'ul',
+        [],
+    );
+
     return (
         <TRenderEngineProvider
             customHTMLElementModels={customHTMLElementModels}
@@ -234,6 +243,7 @@ function BaseHTMLEngineProvider({textSelectable = false, children, enableExperim
             htmlParserOptions={{
                 recognizeSelfClosing: true,
             }}
+            ignoreDomNode={ignoreDomNode}
             domVisitors={{
                 // eslint-disable-next-line no-param-reassign
                 onText: (text) => {
