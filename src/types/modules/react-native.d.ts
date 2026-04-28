@@ -61,7 +61,7 @@ declare module 'react-native' {
         EnvironmentChecker: EnvironmentCheckerModule;
         ShortcutManager: ShortcutManagerModule;
         ShareActionHandler: ShareActionHandlerModule;
-        TestToolsBridge: TestToolsBridge;
+        TestToolsBridge?: TestToolsBridge;
         PushNotificationBridge?: PushNotificationBridge;
     }
 

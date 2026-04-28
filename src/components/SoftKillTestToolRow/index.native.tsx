@@ -1,7 +1,7 @@
-import {NativeModules} from 'react-native';
 import Button from '@components/Button';
 import TestToolRow from '@components/TestToolRow';
 import useLocalize from '@hooks/useLocalize';
+import softKillApp from '@libs/softKillApp';
 
 export default function SoftKillTestToolRow() {
     const {translate} = useLocalize();
@@ -11,7 +11,7 @@ export default function SoftKillTestToolRow() {
             <Button
                 small
                 text={translate('initialSettingsPage.troubleshoot.kill')}
-                onPress={() => NativeModules.TestToolsBridge.softKillApp()}
+                onPress={softKillApp}
             />
         </TestToolRow>
     );
