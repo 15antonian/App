@@ -2486,13 +2486,17 @@ function compareDuplicateTransactionFields(
                 }
             } else if (fieldName === 'taxCode') {
                 const differentValues = getDifferentValues(transactions, keys);
+                const hasFalsyTaxCode = differentValues.some((v) => !v);
                 const validTaxes = differentValues?.filter((taxID) => {
-                    const tax = getTaxByID(policy, (taxID as string) ?? '');
+                    if (!taxID) {
+                        return false;
+                    }
+                    const tax = getTaxByID(policy, taxID as string);
                     return tax?.name && !tax.isDisabled && tax.pendingAction !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE;
                 });
 
-                if (!areAllFieldsEqualForKey && validTaxes.length > 1) {
-                    change[fieldName] = validTaxes;
+                if (!areAllFieldsEqualForKey && (validTaxes.length > 1 || (validTaxes.length >= 1 && hasFalsyTaxCode))) {
+                    change[fieldName] = [...validTaxes, ...(hasFalsyTaxCode ? [''] : [])];
                 } else {
                     keep[fieldName] = firstTransaction?.[keys[0]] ?? firstTransaction?.[keys[1]];
                 }
