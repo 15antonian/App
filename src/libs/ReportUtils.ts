@@ -206,6 +206,7 @@ import {
     isIntegrationMessageAction,
     isModifiedExpenseAction,
     isMoneyRequestAction,
+    isForwardedAction,
     isMovedAction,
     isPendingRemove,
     isPolicyChangeLogAction,
@@ -2028,7 +2029,20 @@ function isAwaitingFirstLevelApproval(report: OnyxEntry<Report>): boolean {
     // eslint-disable-next-line @typescript-eslint/no-deprecated
     const submitsToAccountID = getSubmitToAccountID(getPolicy(report.policyID), report);
 
-    return isProcessingReport(report) && submitsToAccountID === report.managerID;
+    if (!isProcessingReport(report) || submitsToAccountID !== report.managerID) {
+        return false;
+    }
+
+    // When an admin updates the approval workflow after the report was already forwarded (e.g. forwardsTo
+    // becomes the new submitsTo), the live policy submitsToAccountID may coincidentally equal report.managerID
+    // (the forwarded-to approver), producing a false positive. A FORWARDED action recorded after the most
+    // recent SUBMITTED action is the authoritative signal that the report has already advanced past the
+    // first-level approver and is therefore NOT awaiting first-level approval.
+    const reportActions = Object.values(allReportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`] ?? {});
+    const lastSubmittedAt = reportActions.filter(isSubmittedAction).reduce((latest, a) => (a.created > latest ? a.created : latest), '');
+    const hasForwardedAfterSubmit = reportActions.some((a) => isForwardedAction(a) && a.created > lastSubmittedAt);
+
+    return !hasForwardedAfterSubmit;
 }
 
 /**
