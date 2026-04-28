@@ -1,5 +1,6 @@
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import {isApproveAction, isExportAction, isPrimaryPayAction, isSubmitAction} from '@libs/ReportPrimaryActionUtils';
+import {isPayAction} from '@libs/ReportActionsUtils';
 import {hasOnlyNonReimbursableTransactions} from '@libs/ReportUtils';
 import createOnyxDerivedValueConfig from '@userActions/OnyxDerived/createOnyxDerivedValueConfig';
 import CONST from '@src/CONST';
@@ -64,7 +65,9 @@ const createTodosReportsAndTransactions = ({
         if (isApproveAction(report, reportTransactions, currentUserAccountID, reportMetadata, policy)) {
             reportsToApprove.push(report);
         }
+        const hasPendingPayAction = reportActions.some((action) => isPayAction(action) && action.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.ADD);
         if (
+            !hasPendingPayAction &&
             isPrimaryPayAction({
                 report,
                 reportTransactions,
