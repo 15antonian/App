@@ -74,7 +74,8 @@ function SearchTypeMenuNarrow({queryJSON, onTabPress}: SearchTypeMenuNarrowProps
     const {translate} = useLocalize();
     const {isOffline} = useNetwork();
     const navigation = useNavigation();
-    const {typeMenuSections} = useSearchTypeMenuSections();
+    const {hash, similarSearchHash, sortBy, sortOrder, type} = queryJSON ?? {};
+    const {typeMenuSections, activeItemIndex} = useSearchTypeMenuSections({hash, similarSearchHash, sortBy, sortOrder, type});
     const personalDetails = usePersonalDetails();
     const feedKeysWithCards = useFeedKeysWithAssignedCards();
     const [restoreFocusType, setRestoreFocusType] = useState<BaseModalProps['restoreFocusType']>();
@@ -163,6 +164,7 @@ function SearchTypeMenuNarrow({queryJSON, onTabPress}: SearchTypeMenuNarrowProps
               .filter((item) => item !== null)
         : [];
 
+    let typeMenuItemIndex = 0;
     for (const section of typeMenuSections) {
         if (section.translationPath === 'search.savedSearchesMenuItemTitle') {
             tabItems.push(...savedSearchesTabItems);
@@ -178,9 +180,10 @@ function SearchTypeMenuNarrow({queryJSON, onTabPress}: SearchTypeMenuNarrowProps
                     badgeText,
                 });
                 queryMap.set(item.key, {query: item.searchQuery});
-                if (item.similarSearchHash === queryJSON?.similarSearchHash) {
+                if (activeItemIndex === typeMenuItemIndex) {
                     activeKey = item.key;
                 }
+                typeMenuItemIndex++;
             }
         }
     }
