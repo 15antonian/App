@@ -2452,7 +2452,13 @@ function getReportActionMessageFragments(translate: LocalizedTranslate, action: 
 
     if (isConciergeCategoryOptions(action) || isConciergeDescriptionOptions(action)) {
         const message = getReportActionMessageText(action);
-        return [{text: message, html: message, type: 'COMMENT'}];
+        // The options are already rendered as actionable buttons by ChatActionableButtons.
+        // Strip the numbered option lines from the message body to avoid showing them twice.
+        const options = getOriginalMessage(action)?.options;
+        const promptOnly = options && options.length > 0
+            ? message.split('\n').slice(0, -(options.length)).join('\n').trim()
+            : message;
+        return [{text: promptOnly, html: promptOnly, type: 'COMMENT'}];
     }
 
     if (isActionOfType(action, CONST.REPORT.ACTIONS.TYPE.DYNAMIC_EXTERNAL_WORKFLOW_ROUTED)) {
