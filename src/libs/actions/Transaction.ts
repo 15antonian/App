@@ -1166,16 +1166,15 @@ function changeTransactionsReport({
                 key: `${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${transaction.transactionID}`,
                 value: allTransactionViolation?.[transaction.transactionID] ?? null,
             });
-            const transactionHasViolations = Array.isArray(violationData.value) && violationData.value.length > 0;
-            const hasOtherViolationsBesideDuplicates =
+            const hasBlockingViolations =
                 Array.isArray(violationData.value) &&
-                !violationData.value.every((violation) => {
+                violationData.value.some((violation) => {
                     if (!isViolationWithName(violation)) {
                         return false;
                     }
-                    return violation.name === CONST.VIOLATIONS.DUPLICATED_TRANSACTION;
+                    return violation.name === CONST.VIOLATIONS.SMARTSCAN_FAILED || violation.name === CONST.VIOLATIONS.NO_ROUTE;
                 });
-            if (transactionHasViolations && hasOtherViolationsBesideDuplicates) {
+            if (hasBlockingViolations) {
                 shouldFixViolations = true;
             }
             if (policy?.disabledFields?.reimbursable) {
@@ -1563,15 +1562,15 @@ function changeTransactionsReport({
             policyHasDependentTags,
             false,
         );
-        const hasOtherViolationsBesideDuplicates =
+        const hasBlockingViolations =
             Array.isArray(violationData.value) &&
-            !violationData.value.every((violation) => {
+            violationData.value.some((violation) => {
                 if (!isViolationWithName(violation)) {
                     return false;
                 }
-                return violation.name === CONST.VIOLATIONS.DUPLICATED_TRANSACTION;
+                return violation.name === CONST.VIOLATIONS.SMARTSCAN_FAILED || violation.name === CONST.VIOLATIONS.NO_ROUTE;
             });
-        if (Array.isArray(violationData.value) && violationData.value.length > 0 && hasOtherViolationsBesideDuplicates) {
+        if (hasBlockingViolations) {
             shouldFixViolations = true;
         }
     }
