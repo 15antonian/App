@@ -333,7 +333,11 @@ function maskCardNumber(cardName?: string, feed?: string, showOriginalName?: boo
     }
 
     const hasSpace = /\s/.test(cardName);
-    const maskedString = cardName.replaceAll('X', '•');
+    // Strip hyphens from card-number-like strings (digits, X, and hyphens only) so that
+    // CSV re-import values such as "4336-00XX-XXXX-2345" group correctly as "4336 00•• •••• 2345".
+    // Display names (e.g. "Checking") contain non-digit/X characters and are left unchanged.
+    const normalized = !hasSpace && /^[\dX-]+$/.test(cardName) ? cardName.replaceAll('-', '') : cardName;
+    const maskedString = normalized.replaceAll('X', '•');
     const isAmexBank = [CONST.COMPANY_CARD.FEED_BANK_NAME.AMEX, CONST.COMPANY_CARD.FEED_BANK_NAME.AMEX_DIRECT].some((value) => value === feed);
 
     if (hasSpace) {
