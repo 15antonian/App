@@ -11525,8 +11525,7 @@ function isReportOutstanding(
         !isExpenseReport(iouReport) ||
         iouReport?.stateNum === undefined ||
         iouReport?.statusNum === undefined ||
-        iouReport?.policyID !== policyID ||
-        hasForwardedAction(iouReport.reportID)
+        iouReport?.policyID !== policyID
     ) {
         return false;
     }
@@ -11534,6 +11533,15 @@ function isReportOutstanding(
     if (isArchivedReport(reportNameValuePair)) {
         return false;
     }
+
+    // A report that has been rejected back to Draft (stateNum/statusNum both OPEN) is outstanding
+    // even if its action history contains a prior FORWARDED action from an earlier approval cycle.
+    // Only block on hasForwardedAction when the report is no longer in the OPEN state.
+    const isCurrentlyOpen = iouReport.stateNum === CONST.REPORT.STATE_NUM.OPEN && iouReport.statusNum === CONST.REPORT.STATUS_NUM.OPEN;
+    if (!isCurrentlyOpen && hasForwardedAction(iouReport.reportID)) {
+        return false;
+    }
+
     const currentRoute = navigationRef.getCurrentRoute();
     const params = currentRoute?.params as MoneyRequestNavigatorParamList[typeof SCREENS.MONEY_REQUEST.STEP_CONFIRMATION] | ReportsSplitNavigatorParamList[typeof SCREENS.REPORT];
     const activeReport = deprecatedAllReports?.[`${ONYXKEYS.COLLECTION.REPORT}${params?.reportID}`];
