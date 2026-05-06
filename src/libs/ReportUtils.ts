@@ -6129,7 +6129,12 @@ function navigateToDetailsPage(report: OnyxEntry<Report>, backTo?: string, shoul
     }
 
     if (report?.reportID) {
-        Navigation.navigate(ROUTES.REPORT_WITH_ID_DETAILS.getRoute(report?.reportID, backTo));
+        const rhpRoute = Navigation.getReportRHPActiveRoute();
+        if (rhpRoute) {
+            Navigation.dismissModal({afterTransition: () => Navigation.navigate(ROUTES.REPORT_WITH_ID_DETAILS.getRoute(report.reportID, rhpRoute))});
+        } else {
+            Navigation.navigate(ROUTES.REPORT_WITH_ID_DETAILS.getRoute(report?.reportID, backTo));
+        }
     }
 }
 
