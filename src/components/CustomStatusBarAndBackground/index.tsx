@@ -155,6 +155,12 @@ function CustomStatusBarAndBackground({isNested = false}: CustomStatusBarAndBack
 
     useEffect(() => {
         if (isDisabled) {
+            statusBarAnimation.set(0);
+        }
+    }, [isDisabled, statusBarAnimation]);
+
+    useEffect(() => {
+        if (isDisabled) {
             return;
         }
 

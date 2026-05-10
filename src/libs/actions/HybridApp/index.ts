@@ -111,7 +111,11 @@ function closeReactNativeApp({shouldSetNVP, isTrackingGPS, shouldIgnoreTryNewDot
 
     Navigation.clearPreloadedRoutes();
     if (CONFIG.IS_HYBRID_APP) {
-        Onyx.merge(ONYXKEYS.HYBRID_APP, {closingReactNativeApp: true});
+        Onyx.merge(ONYXKEYS.HYBRID_APP, {closingReactNativeApp: true}).then(() => {
+            // eslint-disable-next-line no-restricted-properties
+            HybridAppModule.closeReactNativeApp({shouldSetNVP});
+        });
+        return;
     }
 
     // eslint-disable-next-line no-restricted-properties
