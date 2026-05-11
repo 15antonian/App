@@ -812,7 +812,9 @@ function setUpPoliciesAndNavigate(
     }
     if (!isLoggingInAsNewUser && exitTo) {
         Navigation.waitForProtectedRoutes().then(() => {
-            Navigation.navigate(exitTo);
+            // Use forceReplace so TRANSITION_BETWEEN_APPS is removed from the root stack
+            // instead of having a new TAB_NAVIGATOR pushed on top of it.
+            Navigation.navigate(exitTo, {forceReplace: true});
         });
     }
 }
