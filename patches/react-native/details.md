@@ -277,3 +277,9 @@
 - Upstream PR/issue: 🛑
 - E/App issue: https://github.com/Expensify/App/issues/57556
 - PR introducing patch: https://github.com/Expensify/App/pull/79815
+
+### [react-native+0.83.1+037+fix-hermes-stacktraceparser-stoi-overflow.patch](react-native+0.83.1+037+fix-hermes-stacktraceparser-stoi-overflow.patch)
+
+- Reason: Fixes a fatal `std::overflow_error` crash on iOS HybridApp (Sentry APP-8KQ, 14k+ affected users). The Hermes stack trace parser (`parseLine()` in `StackTraceParser.cpp`) calls raw `std::stoi()` at three sites to parse line/column offsets from Hermes frame strings. On HybridApp's large minified bundle, column offsets routinely exceed `INT_MAX` (the entire bundle is on one line), causing `std::stoi()` to throw `std::overflow_error`. Since the throw is uncaught, it terminates the process fatally with no JS stack trace recorded. The file already contained a safe `toInt()` helper using `std::from_chars` (used in the Chrome/JSC parser path) that returns `std::nullopt` on overflow instead of throwing. This patch replaces the three unsafe `std::stoi()` calls in `parseLine()` with `toInt(...).value_or(0)`, making overflow non-fatal and consistent with how the rest of the file handles out-of-range values.
+- Upstream PR/issue: 🛑
+- E/App issue: [#91225](https://github.com/Expensify/App/issues/91225)

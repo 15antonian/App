@@ -1,0 +1,24 @@
+diff --git a/node_modules/react-native/ReactCommon/jserrorhandler/StackTraceParser.cpp b/node_modules/react-native/ReactCommon/jserrorhandler/StackTraceParser.cpp
+index a5b2c3f..d1e4567 100644
+--- a/node_modules/react-native/ReactCommon/jserrorhandler/StackTraceParser.cpp
++++ b/node_modules/react-native/ReactCommon/jserrorhandler/StackTraceParser.cpp
+@@ -259,8 +259,8 @@
+     if (type == "native") {
+       entry.location.type = "NATIVE";
+     } else {
+-      int line1Based = std::stoi(match[5].str());
+-      int columnOrOffset = std::stoi(match[6].str());
++      int line1Based = toInt(match[5].str()).value_or(0);
++      int columnOrOffset = toInt(match[6].str()).value_or(0);
+       if (addressAt == "address at ") {
+         if (isInternalBytecodeSourceUrl(sourceUrl)) {
+           entry.location = {
+@@ -277,7 +277,7 @@
+   }
+   if (std::regex_match(line, match, RE_SKIPPED)) {
+     entry.type = "SKIPPED";
+-    entry.count = std::stoi(match[1].str());
++    entry.count = toInt(match[1].str()).value_or(0);
+   }
+   return entry;
+ }
