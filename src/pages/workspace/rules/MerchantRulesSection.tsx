@@ -115,12 +115,14 @@ function MerchantRulesSection({policyID}: MerchantRulesSectionProps) {
 
     const [ruleSearchInput, setRuleSearchInput, filteredRules] = useSearchResults(visibleRules, filterRule);
 
+    const shouldShowRuleSearch = visibleRules.length >= CONST.STANDARD_LIST_ITEM_LIMIT;
+
     useEffect(() => {
-        if (visibleRules.length > CONST.SEARCH_BAR_THRESHOLD) {
+        if (shouldShowRuleSearch) {
             return;
         }
         setRuleSearchInput('');
-    }, [visibleRules.length, setRuleSearchInput]);
+    }, [shouldShowRuleSearch, setRuleSearchInput]);
 
     const renderTitle = () => (
         <View style={[styles.flexRow, styles.alignItemsCenter]}>
@@ -143,7 +145,7 @@ function MerchantRulesSection({policyID}: MerchantRulesSectionProps) {
         >
             {hasRules && (
                 <View style={[styles.mt3, styles.gap2]}>
-                    {visibleRules.length > CONST.SEARCH_BAR_THRESHOLD && (
+                    {shouldShowRuleSearch && (
                         <SearchBar
                             label={translate('workspace.rules.merchantRules.findRule')}
                             inputValue={ruleSearchInput}
