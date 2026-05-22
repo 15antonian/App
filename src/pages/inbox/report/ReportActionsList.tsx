@@ -239,6 +239,48 @@ function ReportActionsList({
 
     const reportLastReadTime = report.lastReadTime ?? '';
 
+    // Strip high-churn chat-activity fields before passing report into renderItem.
+    // These fields change on every send/receive but no row-level component needs them;
+    // keeping them out of renderItem's useCallback deps prevents FlashList from
+    // re-invoking renderItem (and re-rendering every ReportActionsListItemRenderer row)
+    // on each chat-activity Onyx update.
+    const stableReport = useMemo(() => {
+        const {
+            lastMessageText,
+            lastVisibleActionCreated,
+            lastReadTime,
+            lastReadSequenceNumber,
+            lastMentionedTime,
+            lastVisibleActionLastModified,
+            lastMessageHtml,
+            lastActorAccountID,
+            lastActionType,
+            ...rest
+        } = report;
+        return rest as OnyxTypes.Report;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        report.reportID,
+        report.pendingFields,
+        report.participants,
+        report.errorFields,
+        report.isDeletedParentAction,
+        report.statusNum,
+        report.stateNum,
+        report.parentReportID,
+        report.parentReportActionID,
+        report.reportName,
+        report.description,
+        report.managerID,
+        report.total,
+        report.nonReimbursableTotal,
+        report.policyAvatar,
+        report.fieldList,
+        report.chatReportID,
+        report.policyID,
+        report.type,
+    ]);
+
     /**
      * The index of the earliest message that was received while offline
      */
@@ -745,7 +787,7 @@ function ReportActionsList({
                         parentReportAction={parentReportAction}
                         parentReportActionForTransactionThread={parentReportActionForTransactionThread}
                         index={index}
-                        report={report}
+                        report={stableReport}
                         transactionThreadReport={transactionThreadReport}
                         linkedReportActionID={linkedReportActionID}
                         displayAsGroup={
@@ -787,7 +829,7 @@ function ReportActionsList({
             parentReportActionForTransactionThread,
             personalDetailsList,
             renderedVisibleReportActions,
-            report,
+            stableReport,
             reportNameValuePairs?.origin,
             reportNameValuePairs?.originalID,
             shouldHideThreadDividerLine,
