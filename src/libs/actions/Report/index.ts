@@ -155,6 +155,7 @@ import {
     isCurrentUserSubmitter,
     isExpenseReport,
     isGroupChat as isGroupChatReportUtils,
+    isReportParticipant,
     isHiddenForCurrentUser,
     isInvoiceReport,
     isIOUReportUsingReport,
@@ -1073,6 +1074,59 @@ function addActions({
         successData,
         failureData,
     });
+
+    // In a group chat, a mentioned non-participant is never automatically added — the backend
+    // only generates ACTIONABLE_MENTION_WHISPER for rooms (CONST.REPORT.CHAT_TYPE.ROOM), not
+    // for group chats (CONST.REPORT.CHAT_TYPE.GROUP). Detect mentioned non-members from the
+    // already-parsed reportCommentText and invite them via the existing INVITE_TO_GROUP_CHAT
+    // write so membership is persisted without a second user action.
+    if (reportCommentText && isGroupChatReportUtils(reportForAction)) {
+        const mentionedEmails = ReportActionsUtils.getMentionedEmailsFromMessage(reportCommentText);
+        const inviteeEmailsToAccountIDs: InvitedEmailsToAccountIDs = {};
+        for (const login of mentionedEmails) {
+            const accountID = PersonalDetailsUtils.getAccountIDsByLogins([login]).at(0);
+            if (accountID && !isReportParticipant(accountID, reportForAction)) {
+                inviteeEmailsToAccountIDs[login] = accountID;
+            }
+        }
+        if (!isEmptyObject(inviteeEmailsToAccountIDs)) {
+            const inviteeEmails = Object.keys(inviteeEmailsToAccountIDs);
+            const inviteeAccountIDs = Object.values(inviteeEmailsToAccountIDs);
+            const defaultNotificationPreference = getDefaultNotificationPreferenceForReport(reportForAction);
+            const participantsAfterInvitation: Participants = inviteeAccountIDs.reduce(
+                (acc: Participants, accountID: number) => {
+                    // eslint-disable-next-line no-param-reassign
+                    acc[accountID] = {notificationPreference: defaultNotificationPreference, role: CONST.REPORT.ROLE.MEMBER};
+                    return acc;
+                },
+                {...reportForAction.participants},
+            );
+            const inviteOptimisticData = [
+                {
+                    onyxMethod: Onyx.METHOD.MERGE,
+                    key: `${ONYXKEYS.COLLECTION.REPORT}${reportID}` as const,
+                    value: {participants: participantsAfterInvitation},
+                },
+            ];
+            const inviteFailureData = [
+                {
+                    onyxMethod: Onyx.METHOD.MERGE,
+                    key: `${ONYXKEYS.COLLECTION.REPORT}${reportID}` as const,
+                    value: {participants: reportForAction.participants ?? null},
+                },
+            ];
+            const groupChatInviteParams: InviteToGroupChatParams = {
+                reportID,
+                inviteeEmails,
+                accountIDList: inviteeAccountIDs.join(),
+            };
+            API.write(WRITE_COMMANDS.INVITE_TO_GROUP_CHAT, groupChatInviteParams, {
+                optimisticData: inviteOptimisticData,
+                failureData: inviteFailureData,
+            });
+        }
+    }
+
     notifyNewAction(resolvedNotifyReportID, lastAction, lastAction?.actorAccountID === currentUserAccountID);
 }
 
