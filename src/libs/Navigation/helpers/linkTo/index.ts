@@ -79,7 +79,7 @@ function isNavigatingToReportActionWithinSameReport(currentRoute: NavigationPart
     const currentParams = currentRoute.params as ReportsSplitNavigatorParamList[typeof SCREENS.REPORT];
     const newParams = newRoute?.params as ReportsSplitNavigatorParamList[typeof SCREENS.REPORT];
 
-    return currentParams?.reportID === newParams?.reportID && currentParams.reportActionID !== newParams.reportActionID;
+    return currentParams?.reportID === newParams?.reportID && !!currentParams.reportActionID && currentParams.reportActionID !== newParams.reportActionID;
 }
 
 /**
