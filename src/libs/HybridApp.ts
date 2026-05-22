@@ -1,10 +1,10 @@
 import HybridAppModule from '@expensify/react-native-hybrid-app';
 import Onyx from 'react-native-onyx';
-import type {OnyxEntry} from 'react-native-onyx';
+import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import CONFIG from '@src/CONFIG';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {Account, Credentials, HybridApp, Session, TryNewDot} from '@src/types/onyx';
+import type {Account, Credentials, HybridApp, Policy, Session, TryNewDot} from '@src/types/onyx';
 import {closeReactNativeApp, setReadyToShowAuthScreens, setUseNewDotSignInPage} from './actions/HybridApp';
 import Log from './Log';
 import {getCurrentUserEmail} from './Network/NetworkStore';
@@ -68,6 +68,15 @@ Onyx.connectWithoutView({
     },
 });
 
+let allPolicies: OnyxCollection<Policy>;
+Onyx.connectWithoutView({
+    key: ONYXKEYS.COLLECTION.POLICY,
+    waitForCollectionCallback: true,
+    callback: (value) => {
+        allPolicies = value;
+    },
+});
+
 /**
  * Signs the user into OldDot when session and credentials are available,
  * then decides whether to stay in NewDot or switch to OldDot based on `nvp_tryNewDot`.
@@ -108,7 +117,9 @@ function signInToOldDotAndChooseExperience(
         authToken: session.authToken,
         email: getCurrentUserEmail() ?? '',
         // eslint-disable-next-line rulesdir/no-default-id-values
-        policyID: activePolicyID ?? '',
+        // Only pass a non-empty policyID when the policy has loaded in Onyx; a stale/deleted ID causes
+        // OldDot's getActivePolicy() to return null and crash in shareFileCallback.
+        policyID: activePolicyID && allPolicies?.[`${ONYXKEYS.COLLECTION.POLICY}${activePolicyID}`] ? activePolicyID : '',
         signingInWithSAML: hybridApp?.signingInWithSAML ?? false,
     });
 
