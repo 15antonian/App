@@ -18,7 +18,9 @@ import {canUseTouchScreen} from '@libs/DeviceCapabilities';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import Navigation from '@libs/Navigation/Navigation';
 import OnyxTabNavigator, {TabScreenWithFocusTrapWrapper, TopTab} from '@libs/Navigation/OnyxTabNavigator';
+import {fetchPerDiemRates} from '@libs/actions/Policy/PerDiem';
 import {
+    getActivePoliciesWithExpenseChatAndPerDiemEnabled,
     getActivePoliciesWithExpenseChatAndPerDiemEnabledAndHasRates,
     getActivePoliciesWithExpenseChatAndTimeEnabled,
     getPerDiemCustomUnit,
@@ -110,6 +112,24 @@ function IOURequestStartPage({
         () => getActivePoliciesWithExpenseChatAndTimeEnabled(allPolicies, currentUserPersonalDetails.login),
         [allPolicies, currentUserPersonalDetails.login],
     );
+
+    // Policies with Per Diem enabled regardless of whether rates are loaded yet.
+    // Used to trigger a rates fetch for members who never visit the admin Per Diem settings page.
+    const policiesWithPerDiemEnabled = useMemo(
+        () => getActivePoliciesWithExpenseChatAndPerDiemEnabled(allPolicies, currentUserPersonalDetails.login),
+        [allPolicies, currentUserPersonalDetails.login],
+    );
+
+    useEffect(() => {
+        for (const perDiemPolicy of policiesWithPerDiemEnabled) {
+            if (isEmptyObject(getPerDiemCustomUnit(perDiemPolicy)?.rates)) {
+                fetchPerDiemRates(perDiemPolicy.id);
+            }
+        }
+        // Run once on mount — Onyx updates will re-render the tab visibility predicates after rates arrive.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const doesPerDiemPolicyExist = policiesWithPerDiemEnabledAndHasRates.length > 0;
     const moreThanOnePerDiemExist = policiesWithPerDiemEnabledAndHasRates.length > 1;
     const hasCurrentPolicyPerDiemEnabled = isControlPolicy(policy) && !!policy?.arePerDiemRatesEnabled;
