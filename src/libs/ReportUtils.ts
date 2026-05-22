@@ -8992,14 +8992,23 @@ function isUnread(report: OnyxEntry<Report>, oneTransactionThreadReport: OnyxEnt
         return true;
     }
     // lastVisibleActionCreated and lastReadTime are both datetime strings and can be compared directly
-    const lastVisibleActionCreated = getReportLastVisibleActionCreated(report, oneTransactionThreadReport);
+    const threadLastVisibleActionCreated = oneTransactionThreadReport?.lastVisibleActionCreated ?? '';
+    const reportLastVisibleActionCreated = report.lastVisibleActionCreated ?? '';
+    const lastVisibleActionCreated = threadLastVisibleActionCreated > reportLastVisibleActionCreated ? threadLastVisibleActionCreated : reportLastVisibleActionCreated;
+    // Use the actor from whichever report contributed the winning lastVisibleActionCreated timestamp
+    const effectiveLastActorAccountID =
+        threadLastVisibleActionCreated > reportLastVisibleActionCreated
+            ? oneTransactionThreadReport?.lastActorAccountID
+            : report.lastActorAccountID;
     const reportLastReadTime = report.lastReadTime ?? '';
     const threadLastReadTime = oneTransactionThreadReport?.lastReadTime ?? '';
     const lastReadTime = reportLastReadTime > threadLastReadTime ? reportLastReadTime : threadLastReadTime;
     const lastMentionedTime = report.lastMentionedTime ?? '';
 
     // If the user was mentioned and the comment got deleted the lastMentionedTime will be more recent than the lastVisibleActionCreated
-    return lastReadTime < (lastVisibleActionCreated ?? '') || lastReadTime < lastMentionedTime;
+    // Self-authored actions should never mark a report unread for the author; only mentions bypass this guard.
+    const isLastActionBySelf = !!deprecatedCurrentUserAccountID && effectiveLastActorAccountID === deprecatedCurrentUserAccountID;
+    return (!isLastActionBySelf && lastReadTime < (lastVisibleActionCreated ?? '')) || lastReadTime < lastMentionedTime;
 }
 
 function isIOUOwnedByCurrentUser(report: OnyxEntry<Report>, allReportsDict?: OnyxCollection<Report>): boolean {
