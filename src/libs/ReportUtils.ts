@@ -5077,7 +5077,7 @@ function canModifyHoldStatus(report: Report, reportAction: ReportAction, current
         return isAwaitingFirstLevelApproval(report);
     }
 
-    return (isAdmin || isManager) && isProcessingReport(report);
+    return isAdmin && isProcessingReport(report);
 }
 
 function canHoldUnholdReportAction(

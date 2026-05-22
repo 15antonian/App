@@ -2979,6 +2979,27 @@ describe('getSecondaryTransactionThreadActions', () => {
         expect(result.includes(CONST.REPORT.SECONDARY_ACTIONS.HOLD)).toBe(true);
     });
 
+    it('does not include HOLD option for manager on processing expense report transaction thread', () => {
+        const report = {
+            reportID: REPORT_ID,
+            type: CONST.REPORT.TYPE.EXPENSE,
+            ownerAccountID: EMPLOYEE_ACCOUNT_ID,
+            managerID: MANAGER_ACCOUNT_ID,
+            stateNum: CONST.REPORT.STATE_NUM.SUBMITTED,
+            statusNum: CONST.REPORT.STATUS_NUM.SUBMITTED,
+        } as unknown as Report;
+
+        const transaction = {
+            comment: {},
+        } as unknown as Transaction;
+
+        const policy = {} as unknown as Policy;
+
+        jest.spyOn(ReportUtils, 'isActionCreator').mockReturnValue(false);
+        const result = getSecondaryTransactionThreadActions(MANAGER_EMAIL, MANAGER_ACCOUNT_ID, report, transaction, actionR14932, {} as Transaction, policy);
+        expect(result.includes(CONST.REPORT.TRANSACTION_SECONDARY_ACTIONS.HOLD)).toBe(false);
+    });
+
     it('includes REMOVE HOLD option for transaction thread report admin if he is not the holder', () => {
         const report = {} as unknown as Report;
         const transactionThreadReport = {} as unknown as Report;
