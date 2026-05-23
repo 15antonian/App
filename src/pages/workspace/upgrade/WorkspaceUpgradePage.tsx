@@ -278,10 +278,13 @@ function WorkspaceUpgradePage({route}: WorkspaceUpgradePageProps) {
         }, [isUpgraded, canPerformUpgrade, confirmUpgrade]),
     );
 
-    // Gate the page to users who can edit workspace settings (admins on any policy,
-    // or editors on Submit policies). `canPerformUpgrade` (strict admin) still controls
-    // whether the upgrade button is active, so editors see the intro but can't upgrade.
-    if (!canEditWorkspaceSettings(policy)) {
+    // Two distinct entry flows need separate access predicates:
+    // - Per-policy flow (policyID present): canEditWorkspaceSettings gates per-policy access (admins + Submit editors).
+    // - Multi-owner generic flow (policyID absent): canModifyPlan gates multi-owner access (ownerPolicies.length > 1).
+    // canPerformUpgrade = canModifyPlan(ownerPolicies, policy) already captures the multi-owner branch, so it's the
+    // right gate for the no-policy path. canEditWorkspaceSettings(undefined) always returns false, so the original
+    // gate blocked the no-policy multi-owner entry point entirely after PR #87283 replaced canModifyPlan.
+    if (policyID ? !canEditWorkspaceSettings(policy) : !canPerformUpgrade) {
         return <NotFoundPage />;
     }
 
