@@ -1165,6 +1165,24 @@ function isResolvedActionableWhisper(reportAction: OnyxEntry<ReportAction>): boo
         return false;
     }
 
+    // For mention whispers, only treat as deleted if the parent comment is also deleted.
+    // The backend sets `deleted` on a whisper either because (a) its parent ADD_COMMENT was deleted
+    // (cascade deletion — whisper should hide) or (b) as a one-per-user cleanup when a new whisper
+    // is created for the same report (parent still alive — whisper should stay visible).
+    // PR #89450 removed this parent check, causing case (b) whispers to incorrectly disappear.
+    if (reportAction?.reportActionID && (isActionableMentionWhisper(reportAction) || isActionableReportMentionWhisper(reportAction))) {
+        const reportID = reportAction.reportID;
+        const actions = reportID ? allReportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`] : undefined;
+        if (actions) {
+            const storedParentID = 'parentReportActionID' in originalMessage ? (originalMessage as {parentReportActionID?: string}).parentReportActionID : undefined;
+            const parentActionID = storedParentID ?? String(BigInt(reportAction.reportActionID) - (isActionableReportMentionWhisper(reportAction) ? 2n : 1n));
+            const parentAction = actions[parentActionID];
+            if (parentAction && !isDeletedAction(parentAction)) {
+                return false;
+            }
+        }
+    }
+
     return true;
 }
 
