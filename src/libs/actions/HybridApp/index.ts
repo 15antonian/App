@@ -21,7 +21,11 @@ function getSessionAccountID(session: OnyxEntry<Session>): Session['accountID'] 
 
 function updateTryNewDotLoadingState(isTryNewDotUpdate = false, isInitialTryNewDotUpdate = false) {
     if (currentTryNewDot !== undefined) {
-        isLoadingTryNewDot = false;
+        // When Onyx fires the initial NVP_TRY_NEW_DOT callback with null (no cached value for a
+        // fresh account), that null reflects local storage — not a server-confirmed absence. Treat
+        // the NVP as still loading until isLoadingApp clears, at which point the server fetch has
+        // completed and any null is authoritative.
+        isLoadingTryNewDot = isInitialTryNewDotUpdate ? isLoadingApp !== false : false;
         return;
     }
 
