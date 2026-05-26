@@ -225,7 +225,9 @@ function handlePusherDraftEvent(runtime: PusherDraftPacingRuntime, event: Concie
     if (activeStreamSessionID && activeStreamSessionID !== event.streamSessionID) {
         stopPusherDraftPace(runtime);
         completedPusherDraftEventRef.current = null;
-        visibleBodyMarkdownRef.current = '';
+        // Do not blank visibleBodyMarkdownRef here. getNextVisibleConciergeDraftBodyMarkdown
+        // will jump directly to the new agent's content on the next tick because the previous
+        // session's text is not a prefix of the incoming bodyMarkdown.
     }
 
     latestPusherDraftEventRef.current = event;
