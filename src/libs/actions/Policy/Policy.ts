@@ -3018,15 +3018,21 @@ function buildPolicyData(options: BuildPolicyDataOptions): OnyxData<BuildPolicyD
         expenseCreatedReportActionID,
         customUnitID,
         customUnitRateID,
-        engagementChoice,
         currency: outputCurrency,
         file: clonedFile,
-        companySize,
-        userReportedIntegration: userReportedIntegration ?? undefined,
         features: features ? JSON.stringify(features) : undefined,
         shouldAddGuideWelcomeMessage,
         areDistanceRatesEnabled,
     };
+
+    // Only attach onboarding fields when CreateWorkspace is the sole onboarding API call for this flow.
+    // When shouldAddOnboardingTasks is false, a separate CompleteGuidedSetup call will carry these
+    // fields, and including them here causes the backend to fire the "free trial started" email twice.
+    if (shouldAddOnboardingTasks) {
+        params.engagementChoice = engagementChoice;
+        params.companySize = companySize;
+        params.userReportedIntegration = userReportedIntegration ?? undefined;
+    }
 
     if (introSelected !== undefined && (introSelected.choice === CONST.ONBOARDING_CHOICES.TEST_DRIVE_RECEIVER || !introSelected?.choice) && engagementChoice && shouldAddOnboardingTasks) {
         const {onboardingMessages} = getOnboardingMessages();
