@@ -41,6 +41,7 @@ import {
     hasPendingDEWApprove,
     hasPendingDEWSubmit,
     isPayAction,
+    isReimbursementQueuedAction,
 } from './ReportActionsUtils';
 import {getReportPrimaryAction, isPrimaryPayAction} from './ReportPrimaryActionUtils';
 import {
@@ -418,6 +419,16 @@ function isCancelPaymentAction(
         return true;
     }
 
+    // A bank payment is only cancellable while a REIMBURSEMENT_QUEUED action is still active.
+    // When the employee has a wallet bank account, the payment is dispatched to ACH immediately
+    // and no REIMBURSEMENT_QUEUED action is written. The backend's CancelReimbursement command
+    // checks for that queue entry; without one, it returns an error. We use the net count of
+    // queued vs dequeued actions to track whether the payment is still in the queue, which also
+    // handles cancel-then-repay sequences correctly.
+    const queuedCount = allActionsArray.filter((action) => !!action && isReimbursementQueuedAction(action)).length;
+    const dequeuedCount = allActionsArray.filter((action) => action?.actionName === CONST.REPORT.ACTIONS.TYPE.REIMBURSEMENT_DEQUEUED).length;
+    const hasActiveQueuedReimbursement = queuedCount > dequeuedCount;
+
     // Bank payment is processing when:
     // 1. In BILLING state (ACH batch submitted), OR
     // 2. In APPROVED + REIMBURSED state (immediately after paying via bank, before batch is sent), OR
@@ -425,7 +436,7 @@ function isCancelPaymentAction(
     const isInBillingState = report.stateNum === CONST.REPORT.STATE_NUM.BILLING && report.statusNum === CONST.REPORT.STATUS_NUM.REIMBURSED;
     const isApprovedAndReimbursed = report.stateNum === CONST.REPORT.STATE_NUM.APPROVED && report.statusNum === CONST.REPORT.STATUS_NUM.REIMBURSED;
     const isAutoReimbursed = report.stateNum === CONST.REPORT.STATE_NUM.AUTOREIMBURSED && report.statusNum === CONST.REPORT.STATUS_NUM.REIMBURSED;
-    const isBankProcessing = isPaidViaBankAccount && (isInBillingState || isApprovedAndReimbursed || isAutoReimbursed);
+    const isBankProcessing = isPaidViaBankAccount && hasActiveQueuedReimbursement && (isInBillingState || isApprovedAndReimbursed || isAutoReimbursed);
     const isPaymentProcessing = (!!report.isWaitingOnBankAccount && report.statusNum === CONST.REPORT.STATUS_NUM.APPROVED) || isBankProcessing;
 
     const hasDailyNachaCutoffPassed = payActions.some((action) => {

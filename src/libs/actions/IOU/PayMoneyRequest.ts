@@ -611,9 +611,7 @@ function cancelPayment(
             onyxMethod: Onyx.METHOD.MERGE,
             key: `${ONYXKEYS.COLLECTION.REPORT}${expenseReport.reportID}`,
             value: {
-                statusNum: CONST.REPORT.STATUS_NUM.REIMBURSED,
-                isWaitingOnBankAccount: expenseReport.isWaitingOnBankAccount,
-                isCancelledIOU: false,
+                ...expenseReport,
                 nextStep:
                     buildOptimisticNextStep({
                         report: expenseReport,
