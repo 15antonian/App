@@ -1403,6 +1403,34 @@ function submitReport({
         });
     }
 
+    // Clear hold reason of all transactions when submitting via submit-and-close (Mark as done).
+    // For normal submit the report goes to SUBMITTED and a manager still reviews held expenses,
+    // so we must not clear holds there. For submit-and-close the report goes straight to CLOSED
+    // with no further approval step, mirroring the same block in approveMoneyRequest (L646-668).
+    if (isSubmitAndClosePolicy) {
+        const heldTransactions = getAllHeldTransactionsReportUtils(expenseReport.reportID);
+        for (const heldTransaction of heldTransactions) {
+            optimisticData.push({
+                onyxMethod: Onyx.METHOD.MERGE,
+                key: `${ONYXKEYS.COLLECTION.TRANSACTION}${heldTransaction.transactionID}`,
+                value: {
+                    comment: {
+                        hold: '',
+                    },
+                },
+            });
+            failureData.push({
+                onyxMethod: Onyx.METHOD.MERGE,
+                key: `${ONYXKEYS.COLLECTION.TRANSACTION}${heldTransaction.transactionID}`,
+                value: {
+                    comment: {
+                        hold: heldTransaction.comment?.hold,
+                    },
+                },
+            });
+        }
+    }
+
     if (!isDEWPolicy) {
         optimisticData.push({
             onyxMethod: Onyx.METHOD.MERGE,
