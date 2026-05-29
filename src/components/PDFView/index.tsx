@@ -12,6 +12,7 @@ import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
+import {isMobileSafari} from '@libs/Browser';
 import variables from '@styles/variables';
 import {retrieveMaxCanvasArea, retrieveMaxCanvasHeight, retrieveMaxCanvasWidth} from '@userActions/CanvasSize';
 import CONST from '@src/CONST';
@@ -72,6 +73,20 @@ function PDFView({onToggleKeyboard, fileName, onPress, isFocused, sourceURL, sty
         retrieveCanvasLimits();
         // This rule needs to be applied so that this effect is executed only when the component is mounted
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        // iOS Safari blocks pinch-zoom via the global `* { touch-action: pan-x pan-y }` rule in web/index.html.
+        // Unlike user-scalable=no (which modern iOS Safari can override for accessibility), touch-action is
+        // strictly enforced — pinch events never reach any handler. Set a body attribute while the PDF viewer is
+        // mounted so that the companion CSS rule in web/index.html re-admits pinch-zoom over the PDF subtree.
+        if (!isMobileSafari()) {
+            return;
+        }
+        document.body.setAttribute('data-pdf-open', 'true');
+        return () => {
+            document.body.removeAttribute('data-pdf-open');
+        };
     }, []);
 
     useEffect(() => {
