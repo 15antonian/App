@@ -1268,7 +1268,14 @@ function clearErrorField(bankName: CompanyCardFeedWithNumber, domainAccountID: n
     });
 }
 
-function linkCardFeedToPolicy(domainAccountID: number, policyID: string, feedType: string, feedCountry?: string, feedName?: CompanyCardFeedWithNumber) {
+function linkCardFeedToPolicy(
+    domainAccountID: number,
+    policyID: string,
+    feedType: string,
+    feedCountry?: string,
+    feedName?: CompanyCardFeedWithNumber,
+    currentLinkedPolicyIDs?: string[],
+) {
     return new Promise((resolve, reject) => {
         const parameters = {
             policyID,
@@ -1284,6 +1291,22 @@ function linkCardFeedToPolicy(domainAccountID: number, policyID: string, feedTyp
                     // eslint-disable-next-line prefer-promise-reject-errors
                     reject('common.genericErrorMessage');
                     return;
+                }
+                // Record the new policy link locally so useCardFeeds and useOtherFeedsForFeedSelector
+                // reflect the change before the next server sync. Preserve any existing linkedPolicyIDs
+                // from other workspaces to avoid hiding a feed that is already visible elsewhere.
+                if (feedName) {
+                    const existing = currentLinkedPolicyIDs ?? [];
+                    const next = existing.includes(policyID) ? existing : [...existing, policyID];
+                    Onyx.merge(`${ONYXKEYS.COLLECTION.SHARED_NVP_PRIVATE_DOMAIN_MEMBER}${domainAccountID}`, {
+                        settings: {
+                            companyCards: {
+                                [feedName]: {
+                                    linkedPolicyIDs: next,
+                                },
+                            },
+                        },
+                    });
                 }
                 resolve(response as ExpensifyCardDetails);
             })

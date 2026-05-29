@@ -26,6 +26,8 @@ type CardFeedListItem = ListItem & {
     fundID?: number;
     /** Feed country value */
     country?: string;
+    /** Policy IDs already linked to this feed */
+    linkedPolicyIDs?: string[];
 };
 
 /**
@@ -62,6 +64,7 @@ function useOtherFeedsForFeedSelector(policyID: string): CardFeedListItem[] {
                     feed: feedName as CompanyCardFeedWithNumber,
                     fundID: Number(feed.fundID),
                     country: feed?.country,
+                    linkedPolicyIDs: feed.linkedPolicyIDs,
                     alternateText: domainName ?? feedPolicy?.name,
                     text: getCustomOrFormattedFeedName(translate, feedName, feed.name),
                     // Composite key so rows stay distinct if the same feed id appears under multiple policies
