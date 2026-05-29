@@ -17,7 +17,7 @@ type CreatePerDiemRequestParams = {
     reportActionID: string;
     createdChatReportActionID?: string;
     createdIOUReportActionID?: string;
-    reportPreviewReportActionID: string;
+    reportPreviewReportActionID?: string;
     transactionThreadReportID?: string;
     createdReportActionIDForThread: string | undefined;
     billable?: boolean;

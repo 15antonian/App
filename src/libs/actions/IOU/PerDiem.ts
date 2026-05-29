@@ -1066,7 +1066,7 @@ function submitPerDiemExpenseForSelfDM(submitPerDiemExpenseInformation: PerDiemE
         chatReportID: chatReport.reportID,
         transactionID: transaction.transactionID,
         reportActionID: iouAction.reportActionID,
-        reportPreviewReportActionID: '',
+        reportPreviewReportActionID: undefined,
         category,
         tag,
         transactionThreadReportID,
