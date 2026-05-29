@@ -68,7 +68,11 @@ async function validateAttachmentFile(file: FileObject, item?: DataTransferItem,
         if (updatedFile.name !== cleanName) {
             updatedFile = new File([updatedFile], cleanName, {type: updatedFile.type});
         }
+        const previousUri = updatedFile.uri;
         const inputSource = URL.createObjectURL(updatedFile);
+        if (previousUri && previousUri.startsWith('blob:') && previousUri !== inputSource) {
+            URL.revokeObjectURL(previousUri);
+        }
         updatedFile.uri = inputSource;
 
         return {isValid: true, file: updatedFile};

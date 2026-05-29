@@ -132,8 +132,6 @@ function ReportAddAttachmentModalContent({route, navigation}: AttachmentModalScr
         isAuthTokenRequired,
     });
 
-    useNavigateToReportOnRefresh({source: sourceParam, file: validFiles, reportID});
-
     const contentProps = useMemo<AttachmentModalBaseContentProps>(() => {
         if (validFiles === undefined || (Array.isArray(validFiles) && validFiles.length === 0)) {
             return {
