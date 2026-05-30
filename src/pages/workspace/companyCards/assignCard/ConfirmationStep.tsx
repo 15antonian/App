@@ -111,7 +111,7 @@ function ConfirmationStep({route}: ConfirmationStepProps) {
         // Check both encryptedCardNumber and cardName since isCardAlreadyAssigned matches on either
         // This handles cases where workspace card entries only have cardName (masked display name) stored
         const cardIdentifier = cardToAssign?.encryptedCardNumber ?? cardToAssign?.cardName;
-        if (cardIdentifier && isCardAlreadyAssigned(cardIdentifier, workspaceCardFeeds, domainOrWorkspaceAccountID, bankName)) {
+        if (cardIdentifier && isCardAlreadyAssigned(cardIdentifier, workspaceCardFeeds, domainOrWorkspaceAccountID, bankName, cardholderAccountID)) {
             setCardError(getMicroSecondOnyxErrorWithTranslationKey('workspace.companyCards.cardAlreadyAssignedError'));
             return;
         }

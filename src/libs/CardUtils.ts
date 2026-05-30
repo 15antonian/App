@@ -1553,7 +1553,13 @@ function splitMaskedCardNumber(cardNumber: string | undefined, maskChar: string 
     };
 }
 
-function isCardAlreadyAssigned(cardNumberToCheck: string, workspaceCardFeeds: OnyxCollection<WorkspaceCardsList>, domainOrWorkspaceAccountID: number, feedName?: string): boolean {
+function isCardAlreadyAssigned(
+    cardNumberToCheck: string,
+    workspaceCardFeeds: OnyxCollection<WorkspaceCardsList>,
+    domainOrWorkspaceAccountID: number,
+    feedName?: string,
+    assigneeAccountID?: number,
+): boolean {
     if (!cardNumberToCheck || !workspaceCardFeeds) {
         return false;
     }
@@ -1592,10 +1598,24 @@ function isCardAlreadyAssigned(cardNumberToCheck: string, workspaceCardFeeds: On
             return false;
         }
 
+        const isCrossWorkspace = feedDomainID !== domainOrWorkspaceAccountID;
+
         const {cardList, ...assignedCards} = workspaceCards;
-        return Object.values(assignedCards).some(
-            (card) => card && card.pendingAction !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE && isMatchingCard(card, cardNumberToCheck, cardNumberToCheck),
-        );
+        return Object.values(assignedCards).some((card) => {
+            if (!card || card.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE) {
+                return false;
+            }
+            if (!isMatchingCard(card, cardNumberToCheck, cardNumberToCheck)) {
+                return false;
+            }
+            // For cross-workspace matches, only block if the card belongs to a different cardholder.
+            // The guard was introduced to prevent one card from being claimed by two different people —
+            // it should not block the same person from using their card in a second workspace.
+            if (isCrossWorkspace && assigneeAccountID !== undefined && card.accountID !== undefined) {
+                return card.accountID !== assigneeAccountID;
+            }
+            return true;
+        });
     });
 }
 
