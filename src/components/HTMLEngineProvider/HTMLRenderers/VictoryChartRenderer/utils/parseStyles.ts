@@ -30,6 +30,22 @@ function parseStyles(tnode: TNode): {nodeStyles: ViewStyle; parentNodeStyles: Vi
         }
     }
 
+    // After all attribute merges, convert a numeric width+height pair into a responsive
+    // aspect-ratio triple so the chart scales uniformly as the viewport narrows.
+    // This mirrors styles.expenseViewImageSmall: maxWidth+maxHeight cap the intrinsic size
+    // while aspectRatio drives height from whatever width the container resolves to.
+    // Computing here (after style.data merge) ensures backend-provided style overrides
+    // are reflected before the ratio is derived.
+    const finalWidth = nodeStyles.width;
+    const finalHeight = nodeStyles.height;
+    if (typeof finalWidth === 'number' && typeof finalHeight === 'number' && finalHeight > 0) {
+        nodeStyles.maxWidth = finalWidth;
+        nodeStyles.maxHeight = finalHeight;
+        nodeStyles.aspectRatio = finalWidth / finalHeight;
+        nodeStyles.height = 'auto';
+        delete nodeStyles.width;
+    }
+
     return {nodeStyles, parentNodeStyles};
 }
 
