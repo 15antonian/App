@@ -159,9 +159,17 @@ function WorkspaceWorkflowsApprovalsApproverPage({policy, personalDetails, isLoa
             const isRemovingApprover = approvers.length === 0;
 
             if (isRemovingApprover) {
+                // On the standard APPROVER route (not APPROVER_CHANGE) a re-tap of the already-selected
+                // row is never a deliberate removal — it is the agent/approver being "confirmed".
+                // Navigate forward to the approval limit page instead of clearing the approver.
+                // The APPROVER_CHANGE variant is the only route where re-tapping to remove is intentional.
+                if (!isChangeApproverRoute) {
+                    Navigation.navigate(ROUTES.WORKSPACE_WORKFLOWS_APPROVALS_APPROVAL_LIMIT.getRoute(route.params.policyID, approverIndex));
+                    return;
+                }
                 setRemovingApproverEmail(visibleSelectedApproverEmail);
                 clearApprovalWorkflowApprover({approverIndex, currentApprovalWorkflow: approvalWorkflow});
-                if (isChangeApproverRoute && approvalWorkflow?.action === CONST.APPROVAL_WORKFLOW.ACTION.EDIT) {
+                if (approvalWorkflow?.action === CONST.APPROVAL_WORKFLOW.ACTION.EDIT) {
                     Navigation.goBack(ROUTES.WORKSPACE_WORKFLOWS_APPROVALS_EDIT.getRoute(route.params.policyID, firstApprover));
                     return;
                 }
