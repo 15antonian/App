@@ -9,6 +9,7 @@ import {renderScrollComponent as renderActionSheetAwareScrollView} from '@compon
 import InvertedFlashList from '@components/FlashList/InvertedFlashList';
 import {AUTOSCROLL_TO_TOP_THRESHOLD} from '@components/FlatList/hooks/useFlatListScrollKey';
 import ReportActionsSkeletonView from '@components/ReportActionsSkeletonView';
+import useAppFocusEvent from '@hooks/useAppFocusEvent';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useEnvironment from '@hooks/useEnvironment';
 import useIsAnonymousUser from '@hooks/useIsAnonymousUser';
@@ -575,7 +576,7 @@ function ReportActionsList({
         const isFromNotification = route?.params?.referrer === CONST.REFERRER.NOTIFICATION;
         const isScrolledToEnd = scrollOffsetRef.current < CONST.REPORT.ACTIONS.ACTION_VISIBLE_THRESHOLD;
 
-        if ((isVisible || isFromNotification) && !hasNewerActions && isScrolledToEnd) {
+        if (((isVisible && Visibility.hasFocus()) || isFromNotification) && !hasNewerActions && isScrolledToEnd) {
             readNewestAction(report.reportID, !!reportLoadingState?.hasOnceLoadedReportActions);
             if (isFromNotification) {
                 Navigation.setParams({referrer: undefined});
@@ -644,6 +645,8 @@ function ReportActionsList({
         prevHandleReportChangeMarkAsRead.current = handleReportChangeMarkAsRead;
         prevHandleAppVisibilityMarkAsRead.current = handleAppVisibilityMarkAsRead;
     }, [handleReportChangeMarkAsRead, handleAppVisibilityMarkAsRead]);
+
+    useAppFocusEvent(handleAppVisibilityMarkAsRead);
 
     useEffect(() => {
         if (initialScrollKey) {

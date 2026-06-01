@@ -346,7 +346,7 @@ function MoneyRequestReportActionsList({onLayout}: MoneyRequestReportListProps) 
             // Currently, there's no programmatic way to dismiss the notification center panel.
             // To handle this, we use the 'referrer' parameter to check if the current navigation is triggered from a notification.
             const isFromNotification = route?.params?.referrer === CONST.REFERRER.NOTIFICATION;
-            if ((isVisible || isFromNotification) && scrollingVerticalBottomOffset.current < CONST.REPORT.ACTIONS.ACTION_VISIBLE_THRESHOLD) {
+            if (((isVisible && Visibility.hasFocus()) || isFromNotification) && scrollingVerticalBottomOffset.current < CONST.REPORT.ACTIONS.ACTION_VISIBLE_THRESHOLD) {
                 readNewestAction(report?.reportID, !!reportLoadingState?.hasOnceLoadedReportActions);
                 if (isFromNotification) {
                     Navigation.setParams({referrer: undefined});
