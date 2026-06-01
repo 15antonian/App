@@ -1,5 +1,5 @@
 import type {FlashListProps} from '@shopify/flash-list';
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 
 type FlashListScrollKeyProps<T> = {
     /** The array of items to render in the list. */
@@ -47,7 +47,10 @@ export default function useFlashListScrollKey<T>({data, keyExtractor, initialScr
         });
     }, [isInitialRender, initialScrollKey]);
 
-    const maintainVisibleContentPosition: FlashListProps<T>['maintainVisibleContentPosition'] = {disabled: !shouldMaintainVisibleContentPosition && hasLinkingSettled};
+    const maintainVisibleContentPosition: FlashListProps<T>['maintainVisibleContentPosition'] = useMemo(
+        () => ({disabled: !shouldMaintainVisibleContentPosition && hasLinkingSettled}),
+        [shouldMaintainVisibleContentPosition, hasLinkingSettled],
+    );
 
     if (!isInitialRender || !initialScrollKey) {
         return {displayedData: data, onStartReached, maintainVisibleContentPosition};

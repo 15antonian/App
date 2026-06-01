@@ -373,6 +373,10 @@ function ReportActionsList({
 
     const [hasScrolledOverThreshold, setHasScrolledOverThreshold] = useState(() => scrollOffsetRef.current > CONST.REPORT.ACTIONS.ACTION_VISIBLE_THRESHOLD);
     const shouldMaintainVisibleContentPosition = hasScrolledOverThreshold || shouldFocusToTopOnMount;
+    const autoscrollToBottomMvcp = useMemo(
+        () => (shouldAutoscrollToBottom ? {autoscrollToBottomThreshold: CONST.REPORT.ACTIONS.ACTION_VISIBLE_THRESHOLD, animateAutoScrollToBottom: false} : undefined),
+        [shouldAutoscrollToBottom],
+    );
 
     /**
      * The timestamp for the unread marker.
@@ -957,9 +961,7 @@ function ReportActionsList({
                     shouldMaintainVisibleContentPosition={shouldMaintainVisibleContentPosition}
                     initialScrollIndex={shouldFocusToTopOnMount ? renderedVisibleReportActions.length - 1 : undefined}
                     initialScrollIndexParams={shouldFocusToTopOnMount ? {viewOffset: windowHeight} : undefined}
-                    maintainVisibleContentPosition={
-                        shouldAutoscrollToBottom ? {autoscrollToBottomThreshold: CONST.REPORT.ACTIONS.ACTION_VISIBLE_THRESHOLD, animateAutoScrollToBottom: false} : undefined
-                    }
+                    maintainVisibleContentPosition={autoscrollToBottomMvcp}
                     onLoad={onLoad}
                     initialScrollKey={initialScrollKey}
                     onContentSizeChange={() => {
