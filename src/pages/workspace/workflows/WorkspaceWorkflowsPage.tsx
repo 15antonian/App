@@ -147,6 +147,7 @@ function WorkspaceWorkflowsPage({policy, route}: WorkspaceWorkflowsPageProps) {
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
     const [isSelfTourViewed] = useOnyx(ONYXKEYS.NVP_ONBOARDING, {selector: hasSeenTourSelector});
+    const [deferredAgentWorkflowSaves] = useOnyx(ONYXKEYS.DEFERRED_AGENT_WORKFLOW_SAVES, {canBeMissing: true});
     const delegateAccountID = useDelegateAccountID();
     const {accountID: currentUserAccountID, email: currentUserEmail = '', login: currentUserLogin = ''} = useCurrentUserPersonalDetails();
     const isUserReimburser = policy?.achAccount?.reimburser !== undefined && account?.primaryLogin !== undefined && policy?.achAccount?.reimburser === account?.primaryLogin;
@@ -181,10 +182,20 @@ function WorkspaceWorkflowsPage({policy, route}: WorkspaceWorkflowsPageProps) {
 
     const onPressAutoReportingFrequency = useCallback(() => Navigation.navigate(ROUTES.WORKSPACE_WORKFLOWS_AUTOREPORTING_FREQUENCY.getRoute(route.params.policyID)), [route.params.policyID]);
 
+    const hasPendingDeferredAgentSave = Object.values(deferredAgentWorkflowSaves ?? {}).some((entry) => entry?.policyID === route.params.policyID);
+
     const fetchData = useCallback(() => {
-        openPolicyWorkflowsPage(route.params.policyID, true);
+        // Skip the reconnect page-open read while a deferred agent workflow save is pending for
+        // this policy. The read waits for CREATE_AGENT (via waitForWrites in API.read) but not for
+        // UPDATE_WORKSPACE_APPROVAL, which the reconciliation effect enqueues after CREATE_AGENT
+        // settles. The server response still carries the pre-update employeeList (owner as approver)
+        // and clobbers the optimistic agent-as-approver write once the deferred overlay is cleared.
+        // This mirrors the policyDraftID guard in WorkspaceOverviewPage (line 280).
+        if (!hasPendingDeferredAgentSave) {
+            openPolicyWorkflowsPage(route.params.policyID, true);
+        }
         getPaymentMethods();
-    }, [route.params.policyID]);
+    }, [route.params.policyID, hasPendingDeferredAgentSave]);
 
     const confirmCurrencyChangeAndHideModal = useCallback(() => {
         if (!policy) {
