@@ -183,9 +183,10 @@ function DynamicTwoFactorAuthPage() {
                             onPress={() => {
                                 localFileDownload(TWO_FACTOR_AUTH_RECOVERY_CODES_FILENAME, recoveryCodes, translate, undefined, undefined, false);
                                 setError('');
-                                setCodesAreCopied();
-                                announceStatus(translate('fileDownload.success.title'));
-                                Navigation.navigate(createDynamicRoute(DYNAMIC_ROUTES.TWO_FACTOR_AUTH_VERIFY.path, backPath), {forceReplace: true});
+                                setCodesAreCopied().then(() => {
+                                    announceStatus(translate('fileDownload.success.title'));
+                                    Navigation.navigate(createDynamicRoute(DYNAMIC_ROUTES.TWO_FACTOR_AUTH_VERIFY.path, backPath), {forceReplace: true});
+                                });
                             }}
                         />
                     )}

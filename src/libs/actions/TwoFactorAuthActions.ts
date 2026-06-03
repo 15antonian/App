@@ -18,7 +18,7 @@ function clearTwoFactorAuthData(clearProgress = false) {
 }
 
 function setCodesAreCopied() {
-    Onyx.merge(ONYXKEYS.ACCOUNT, {codesAreCopied: true, twoFactorAuthSetupInProgress: true});
+    return Onyx.merge(ONYXKEYS.ACCOUNT, {codesAreCopied: true, twoFactorAuthSetupInProgress: true});
 }
 
 function quitAndNavigateBack(backTo?: Route) {
