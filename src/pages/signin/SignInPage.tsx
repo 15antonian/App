@@ -99,16 +99,10 @@ function getRenderOptions({
     const hasEmailDeliveryFailure = !!account?.hasEmailDeliveryFailure;
     const hasSMSDeliveryFailure = !!account?.smsDeliveryFailureStatus?.hasSMSDeliveryFailure;
 
-    // True, if the user has SAML required, and we haven't yet initiated SAML for their account
-    const shouldInitiateSAMLLogin = hasAccount && hasLogin && isSAMLRequired && !hasInitiatedSAMLLogin && !!account.isLoading;
+    // True if SAML has been or is being initiated for this account — used to suppress other sign-in UI
+    // while the SAML redirect is pending. The actual redirect is driven by a useEffect in SignInPage.
+    const shouldInitiateSAMLLogin = hasAccount && hasLogin && isSAMLRequired && !hasInitiatedSAMLLogin;
     const shouldShowChooseSSOOrMagicCode = hasAccount && hasLogin && isSAMLEnabled && !isSAMLRequired && !isUsingMagicCode;
-
-    // SAML required users may reload the login page after having already entered their login details, in which
-    // case we want to clear their sign in data so they don't end up in an infinite loop redirecting back to their
-    // SSO provider's login page
-    if (hasLogin && isSAMLRequired && !shouldInitiateSAMLLogin && !hasInitiatedSAMLLogin && !account.isLoading) {
-        clearSignInData();
-    }
 
     // Show the Welcome form if a user is signing up for a new account in a domain that is not controlled
     const shouldShouldSignUpWelcomeForm = !!credentials?.login && !isAccountValidated && !account?.accountExists && !account?.domainControlled;
@@ -174,6 +168,11 @@ function SignInPage({ref}: SignInPageProps) {
      *  if we need to clear their sign in details so they can enter a login */
     const [hasInitiatedSAMLLogin, setHasInitiatedSAMLLogin] = useState(false);
 
+    // Tracks whether a beginSignIn attempt was observed this session by detecting loadingForm === LOGIN_FORM.
+    // This ref survives the React/useSyncExternalStore render coalescing that prevents isLoading and
+    // isSAMLRequired from ever being true in the same snapshot.
+    const hasObservedLoginFormRef = useRef(false);
+
     const isClientTheLeader = !!activeClients && isClientTheLeaderActiveClientManager();
     // We need to show "Another login page is opened" message if the page isn't active and visible
     // eslint-disable-next-line rulesdir/no-negated-variables
@@ -191,7 +190,38 @@ function SignInPage({ref}: SignInPageProps) {
         if (hasInitiatedSAMLLogin) {
             setHasInitiatedSAMLLogin(false);
         }
+        hasObservedLoginFormRef.current = false;
     }, [credentials?.login, isUsingMagicCode, setIsUsingMagicCode, hasInitiatedSAMLLogin, setHasInitiatedSAMLLogin]);
+
+    // Track when beginSignIn is in flight by detecting loadingForm === LOGIN_FORM.
+    useEffect(() => {
+        if (account?.loadingForm === CONST.FORMS.LOGIN_FORM) {
+            hasObservedLoginFormRef.current = true;
+        }
+    }, [account?.loadingForm]);
+
+    // Fire the SAML redirect once loadingForm has cleared after a real beginSignIn attempt.
+    // Using an effect instead of inline render logic avoids the render-phase setState anti-pattern
+    // and ensures we observe the loadingForm true→false transition as a distinct event even when
+    // React coalesces the onyxData and successData Onyx updates into a single render.
+    useEffect(() => {
+        const isSAMLRequired = !!account?.isSAMLRequired;
+        const hasLogin = !!credentials?.login;
+        const loadingFormCleared = account?.loadingForm !== CONST.FORMS.LOGIN_FORM;
+
+        if (isSAMLRequired && hasLogin && !hasInitiatedSAMLLogin && hasObservedLoginFormRef.current && loadingFormCleared) {
+            setHasInitiatedSAMLLogin(true);
+            Navigation.isNavigationReady().then(() => Navigation.navigate(ROUTES.SAML_SIGN_IN));
+            return;
+        }
+
+        // SAML-required users may reload the login page after having already entered their login details.
+        // If no beginSignIn was observed this session (cold reload with persisted credentials), clear sign-in
+        // data so they do not end up in an infinite redirect loop back to their SSO provider's login page.
+        if (isSAMLRequired && hasLogin && !hasInitiatedSAMLLogin && !hasObservedLoginFormRef.current && loadingFormCleared && !account?.isLoading) {
+            clearSignInData();
+        }
+    }, [account?.isSAMLRequired, account?.loadingForm, account?.isLoading, credentials?.login, hasInitiatedSAMLLogin]);
 
     const {
         shouldShowLoginForm,
@@ -215,11 +245,6 @@ function SignInPage({ref}: SignInPageProps) {
         credentials,
         isAccountValidated,
     });
-
-    if (shouldInitiateSAMLLogin) {
-        setHasInitiatedSAMLLogin(true);
-        Navigation.isNavigationReady().then(() => Navigation.navigate(ROUTES.SAML_SIGN_IN));
-    }
 
     let welcomeHeader = '';
     let welcomeText = '';
