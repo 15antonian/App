@@ -5,6 +5,7 @@ import useDynamicForwardPath from '@hooks/useDynamicForwardPath';
 import useEnvironment from '@hooks/useEnvironment';
 import useOnyx from '@hooks/useOnyx';
 import {getXeroSetupLink} from '@libs/actions/connections/Xero';
+import createDynamicRoute from '@libs/Navigation/helpers/dynamicRoutesUtils/createDynamicRoute';
 import getStateFromPath from '@libs/Navigation/helpers/getStateFromPath';
 import Navigation from '@libs/Navigation/Navigation';
 import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
@@ -13,7 +14,7 @@ import {shouldHideOldAppRedirect} from '@libs/TryNewDotUtils';
 import {openReimbursementAccountPage} from '@userActions/BankAccounts';
 import {closeReactNativeApp} from '@userActions/HybridApp';
 import {openLink} from '@userActions/Link';
-import {clearTwoFactorAuthData, quitAndNavigateBack} from '@userActions/TwoFactorAuthActions';
+import {clearTwoFactorAuthData} from '@userActions/TwoFactorAuthActions';
 import CONFIG from '@src/CONFIG';
 import ONYXKEYS from '@src/ONYXKEYS';
 import {DYNAMIC_ROUTES} from '@src/ROUTES';
@@ -51,7 +52,8 @@ function DynamicSuccessPage({route}: DynamicSuccessPageProps) {
             });
             return;
         }
-        quitAndNavigateBack(dynamicBackPath);
+        Navigation.navigate(createDynamicRoute(DYNAMIC_ROUTES.TWO_FACTOR_AUTH_ROOT.path, dynamicBackPath));
+        clearTwoFactorAuthData();
     };
 
     const onButtonPress = () => {
