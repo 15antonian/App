@@ -726,6 +726,15 @@ function Search({
             return;
         }
 
+        // The current snapshot already resolved with an error. Re-running the same query here
+        // would optimistically clear `errors`, collapse the snapshot to {data:undefined, errors:undefined},
+        // cause useSearchLoadingState to return true (no data, no errors → skeleton), unmount <Search>,
+        // and then remount it when the identical failure re-arrives — producing the flash loop.
+        // The user can re-submit the query to retry; this effect is not the right retry path for errors.
+        if (hasErrors) {
+            return;
+        }
+
         handleSearch({
             queryJSON,
             searchKey: currentSearchKey,
@@ -737,10 +746,10 @@ function Search({
 
         // We don't need to run the effect on change of isFocused.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [handleSearch, isOffline, offset, queryJSON, currentSearchKey, shouldCalculateTotals, validGroupBy]);
+    }, [handleSearch, hasErrors, isOffline, offset, queryJSON, currentSearchKey, shouldCalculateTotals, validGroupBy]);
 
     useEffect(() => {
-        if (!shouldRetrySearchWithTotalsOrGroupedRef.current || searchResults?.search?.isLoading || (!shouldCalculateTotals && !validGroupBy)) {
+        if (!shouldRetrySearchWithTotalsOrGroupedRef.current || hasErrors || searchResults?.search?.isLoading || (!shouldCalculateTotals && !validGroupBy)) {
             return;
         }
 
@@ -760,7 +769,7 @@ function Search({
             prevReportsLength: filteredDataLength,
             isLoading: false,
         });
-    }, [filteredDataLength, handleSearch, offset, queryJSON, currentSearchKey, searchResults?.search?.count, searchResults?.search?.isLoading, shouldCalculateTotals, validGroupBy]);
+    }, [filteredDataLength, handleSearch, hasErrors, offset, queryJSON, currentSearchKey, searchResults?.search?.count, searchResults?.search?.isLoading, shouldCalculateTotals, validGroupBy]);
 
     // When new data load, selectedTransactions is updated in next effect. We use this flag to whether selection is updated
     const isRefreshingSelection = useRef(false);
