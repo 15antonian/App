@@ -248,8 +248,21 @@ async function signInAndGetApp(): Promise<void> {
             Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {
                 [USER_B_ACCOUNT_ID]: TestHelper.buildPersonalDetails(USER_B_EMAIL, USER_B_ACCOUNT_ID, 'B'),
             }),
+        ]);
 
-            // Setup a 2nd report to test comment linking.
+        // Manually mark the sidebar as loaded since onLayout does not fire in tests.
+        setSidebarLoaded();
+    });
+
+    await waitForBatchedUpdatesWithAct();
+}
+
+// The comment-linking report is only needed by the 'opens a chat and load newer messages' test.
+// Seeding it in signInAndGetApp adds two Onyx merges and a batched-update drain to every test,
+// including the already-slow first test. This helper is called only from the test that needs it.
+async function seedCommentLinkingReport(): Promise<void> {
+    await act(async () => {
+        await Promise.all([
             Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${COMMENT_LINKING_REPORT_ID}`, {
                 reportID: COMMENT_LINKING_REPORT_ID,
                 reportName: CONST.REPORT.DEFAULT_REPORT_NAME,
@@ -277,13 +290,15 @@ async function signInAndGetApp(): Promise<void> {
                 },
             }),
         ]);
-
-        // Manually mark the sidebar as loaded since onLayout does not fire in tests.
-        setSidebarLoaded();
     });
-
     await waitForBatchedUpdatesWithAct();
 }
+
+// 240s is the established ceiling for full-<App/> UI suites in this repo (see SessionTest.tsx:33).
+// Only the first test needs this budget — it pays the one-time cost of React.lazy resolving the
+// AppNavigator → AuthScreens → LazyReportsSplitNavigator chain. Tests 2 and 3 reuse the warm
+// module cache and complete well under 120s, so they keep the stricter suite-level timeout.
+const COLD_START_TIMEOUT = 240000;
 
 describe('Pagination', () => {
     afterEach(async () => {
@@ -301,28 +316,32 @@ describe('Pagination', () => {
         jest.clearAllMocks();
     });
 
-    it('opens a chat and load initial messages', async () => {
-        mockOpenReport(5, '5');
+    it(
+        'opens a chat and load initial messages',
+        async () => {
+            mockOpenReport(5, '5');
 
-        await signInAndGetApp();
-        await navigateToSidebarOption(REPORT_ID);
+            await signInAndGetApp();
+            await navigateToSidebarOption(REPORT_ID);
 
-        expect(getReportActions()).toHaveLength(5);
-        TestHelper.expectAPICommandToHaveBeenCalled('OpenReport', 1);
-        TestHelper.expectAPICommandToHaveBeenCalledWith('OpenReport', 0, {reportID: REPORT_ID});
-        TestHelper.expectAPICommandToHaveBeenCalled('GetOlderActions', 0);
-        TestHelper.expectAPICommandToHaveBeenCalled('GetNewerActions', 0);
+            expect(getReportActions()).toHaveLength(5);
+            TestHelper.expectAPICommandToHaveBeenCalled('OpenReport', 1);
+            TestHelper.expectAPICommandToHaveBeenCalledWith('OpenReport', 0, {reportID: REPORT_ID});
+            TestHelper.expectAPICommandToHaveBeenCalled('GetOlderActions', 0);
+            TestHelper.expectAPICommandToHaveBeenCalled('GetNewerActions', 0);
 
-        // Scrolling here should not trigger a new network request.
-        scrollToOffset(LIST_CONTENT_SIZE.height);
-        await waitForBatchedUpdatesWithAct();
-        scrollToOffset(0);
-        await waitForBatchedUpdatesWithAct();
+            // Scrolling here should not trigger a new network request.
+            scrollToOffset(LIST_CONTENT_SIZE.height);
+            await waitForBatchedUpdatesWithAct();
+            scrollToOffset(0);
+            await waitForBatchedUpdatesWithAct();
 
-        TestHelper.expectAPICommandToHaveBeenCalled('OpenReport', 1);
-        TestHelper.expectAPICommandToHaveBeenCalled('GetOlderActions', 0);
-        TestHelper.expectAPICommandToHaveBeenCalled('GetNewerActions', 0);
-    });
+            TestHelper.expectAPICommandToHaveBeenCalled('OpenReport', 1);
+            TestHelper.expectAPICommandToHaveBeenCalled('GetOlderActions', 0);
+            TestHelper.expectAPICommandToHaveBeenCalled('GetNewerActions', 0);
+        },
+        COLD_START_TIMEOUT,
+    );
 
     it('opens a chat and load older messages', async () => {
         mockOpenReport(CONST.REPORT.MIN_INITIAL_REPORT_ACTION_COUNT, '18');
@@ -361,6 +380,7 @@ describe('Pagination', () => {
         mockGetNewerActions(5);
 
         await signInAndGetApp();
+        await seedCommentLinkingReport();
         await navigateToSidebarOption(COMMENT_LINKING_REPORT_ID);
 
         const link = screen.getByText('Link 1');
