@@ -7,6 +7,7 @@ import {WRITE_COMMANDS} from '@libs/API/types';
 import {getDefaultApprover} from '@libs/PolicyUtils';
 import {calculateApprovers, convertApprovalWorkflowToPolicyEmployees, getOverLimitForwardsToDisplayName} from '@libs/WorkflowUtils';
 import CONST from '@src/CONST';
+import * as ErrorUtils from '@libs/ErrorUtils';
 import type {TranslationPaths} from '@src/languages/types';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {ApprovalWorkflowOnyx, PersonalDetailsList, Policy, Report} from '@src/types/onyx';
@@ -60,6 +61,7 @@ function createApprovalWorkflow({approvalWorkflow, policy, addExpenseApprovalsTa
             value: {
                 employeeList: updatedEmployees,
                 approvalMode: CONST.POLICY.APPROVAL_MODE.ADVANCED,
+                errorFields: {approvalMode: null},
             },
         },
     ];
@@ -71,6 +73,7 @@ function createApprovalWorkflow({approvalWorkflow, policy, addExpenseApprovalsTa
             value: {
                 employeeList: previousEmployeeList,
                 approvalMode: previousApprovalMode,
+                errorFields: {approvalMode: ErrorUtils.getMicroSecondOnyxErrorWithTranslationKey('workflowsApproverPage.genericErrorMessage')},
             },
         },
     ];
@@ -81,6 +84,7 @@ function createApprovalWorkflow({approvalWorkflow, policy, addExpenseApprovalsTa
             key: `${ONYXKEYS.COLLECTION.POLICY}${policy.id}`,
             value: {
                 employeeList: Object.fromEntries(Object.keys(updatedEmployees).map((key) => [key, {pendingAction: null, pendingFields: null}])),
+                errorFields: {approvalMode: null},
             },
         },
     ];
@@ -304,13 +308,21 @@ function setApprovalWorkflowApprover({approver, approverIndex, currentApprovalWo
     // Always clear the additional approver error when an approver is added
     const errors: Record<string, TranslationPaths | null> = {additionalApprover: null};
 
+    // When preventSelfApproval is on, a member appearing anywhere in the approver chain is a
+    // transitive self-approval: the member's report would eventually route back to themselves.
+    // Seed the member emails into the circular-reference check so this case fires the same
+    // brick-road error and blocks the save, even when the member email only appears via an
+    // auto-expanded forwardsTo chain (not as a directly-selected approver).
+    const memberEmails = policy.preventSelfApproval && !currentApprovalWorkflow.isDefault ? new Set(currentApprovalWorkflow.members.map((m) => m.email)) : new Set<string>();
+
     // Check for circular references (approver forwards to themselves) and reset other errors
     const updatedApprovers = approvers.map((existingApprover, index) => {
         if (!existingApprover) {
             return;
         }
 
-        const hasCircularReference = approvers.slice(0, index).some((previousApprover) => existingApprover.email === previousApprover?.email);
+        const hasCircularReference =
+            approvers.slice(0, index).some((previousApprover) => existingApprover.email === previousApprover?.email) || memberEmails.has(existingApprover.email);
         if (hasCircularReference) {
             errors[`approver-${index}`] = 'workflowsPage.approverCircularReference';
         } else {
