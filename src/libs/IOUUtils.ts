@@ -501,7 +501,7 @@ function resolveReportForMoneyRequest({
     if (transaction?.reportID === CONST.REPORT.UNREPORTED_REPORT_ID) {
         return undefined;
     }
-    const canUseTransactionReport = !(isProcessingReport(transactionReport) && !policy?.harvesting?.enabled) && isReportOutstanding(transactionReport, policy?.id, undefined, false);
+    const canUseTransactionReport = isReportOutstanding(transactionReport, policy?.id, undefined, false);
     const shouldUseTransactionReport = !!transactionReport && (canUseTransactionReport || !routeReport);
     if (shouldUseTransactionReport) {
         return transactionReport;
