@@ -26,7 +26,14 @@ function IOURequestRedirectToStartPage({route}: IOURequestRedirectToStartPagePro
         // Redirect the person to the right start page using a random reportID
         const optimisticReportID = generateReportID();
         if (iouRequestType === CONST.IOU.REQUEST_TYPE.DISTANCE) {
-            Navigation.navigate(ROUTES.MONEY_REQUEST_CREATE_TAB_DISTANCE.getRoute(CONST.IOU.ACTION.CREATE, iouType, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, optimisticReportID));
+            // The in-tab distance screen only exists in IOURequestStartPage for split expenses.
+            // For every other iouType, distance lives in the dedicated DistanceRequestStartPage flow,
+            // which restores the user's last distance expense type (map/manual/gps/odometer).
+            if (iouType === CONST.IOU.TYPE.SPLIT) {
+                Navigation.navigate(ROUTES.MONEY_REQUEST_CREATE_TAB_DISTANCE.getRoute(CONST.IOU.ACTION.CREATE, iouType, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, optimisticReportID));
+            } else {
+                Navigation.navigate(ROUTES.DISTANCE_REQUEST_CREATE.getRoute(CONST.IOU.ACTION.CREATE, iouType, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, optimisticReportID));
+            }
         } else if (iouRequestType === CONST.IOU.REQUEST_TYPE.MANUAL) {
             Navigation.navigate(ROUTES.MONEY_REQUEST_CREATE_TAB_MANUAL.getRoute(CONST.IOU.ACTION.CREATE, iouType, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, optimisticReportID));
         } else if (iouRequestType === CONST.IOU.REQUEST_TYPE.SCAN) {
