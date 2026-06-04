@@ -16,6 +16,7 @@ import useLocalize from '@hooks/useLocalize';
 import useMergeTransactions from '@hooks/useMergeTransactions';
 import useOnyx from '@hooks/useOnyx';
 import usePermissions from '@hooks/usePermissions';
+import useReportTransactions from '@hooks/useReportTransactions';
 import useSelfDMReport from '@hooks/useSelfDMReport';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {mergeTransactionRequest} from '@libs/actions/MergeTransaction';
@@ -63,6 +64,16 @@ function ConfirmationPage({route}: ConfirmationPageProps) {
 
     const selfDMReport = useSelfDMReport();
 
+    // Determine which report will be emptied by the merge so its stale route can be removed from the stack.
+    // This mirrors the condition in MergeTransaction.ts:442-443.
+    const deletableReportID =
+        mergeTransaction && targetTransaction && sourceTransaction
+            ? mergeTransaction.reportID === targetTransaction.reportID
+                ? sourceTransaction.reportID
+                : targetTransaction.reportID
+            : undefined;
+    const deletableReportTransactions = useReportTransactions(deletableReportID);
+
     // Build the merged transaction data for display
     const mergedTransactionData = buildMergedTransactionData(targetTransaction, mergeTransaction);
 
@@ -71,6 +82,17 @@ function ConfirmationPage({route}: ConfirmationPageProps) {
             return;
         }
         const reportID = mergeTransaction.reportID === CONST.REPORT.UNREPORTED_REPORT_ID ? (findSelfDMReportID() ?? CONST.REPORT.UNREPORTED_REPORT_ID) : mergeTransaction.reportID;
+
+        // When the merge will optimistically delete a single-transaction report, evict that report's
+        // route from the navigation stack before dismissing. Without this, tapping Back from the
+        // destination report lands on the now-null route and ReportNotFoundGuard shows "Not Here"
+        // for a frame. This reuses the same pattern as cleanupAfterExpenseCreate.ts.
+        if (deletableReportID && deletableReportTransactions.length === 1) {
+            const staleRoute = Navigation.getReportRouteByID(deletableReportID);
+            if (staleRoute?.key) {
+                Navigation.removeScreenByKey(staleRoute.key);
+            }
+        }
 
         setIsMergingExpenses(true);
         mergeTransactionRequest({
