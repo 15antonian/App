@@ -20,6 +20,7 @@ import {setIsComposerFullSize} from '@userActions/Report';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type * as OnyxTypes from '@src/types/onyx';
+import {useAgentZeroStatusActions} from '@pages/inbox/AgentZeroStatusContext';
 import {useComposerActions, useComposerEditActions, useComposerEditState, useComposerMeta, useComposerSendState} from './ComposerContext';
 import useComposerReportData from './useComposerReportData';
 import useSidePanelContext from './useSidePanelContext';
@@ -48,6 +49,7 @@ function useComposerSubmit(reportID: string) {
     const targetReportAncestors = useAncestors(targetReport);
 
     const currentUserEmail = currentUserPersonalDetails.email ?? '';
+    const {kickoffWaitingIndicator} = useAgentZeroStatusActions();
 
     /**
      * Add or edit a comment in the composer
@@ -80,6 +82,7 @@ function useComposerSubmit(reportID: string) {
                 sidePanelContext,
             });
             attachmentFileRef.current = null;
+            kickoffWaitingIndicator();
             return;
         }
 
@@ -154,6 +157,7 @@ function useComposerSubmit(reportID: string) {
             reportActionID: optimisticReportActionID,
             delegateAccountID,
         });
+        kickoffWaitingIndicator();
     };
 
     const submitDraftAndClearComposer = () => {
