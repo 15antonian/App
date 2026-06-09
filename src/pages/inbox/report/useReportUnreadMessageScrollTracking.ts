@@ -55,6 +55,7 @@ export default function useReportUnreadMessageScrollTracking({
         isFocused: boolean;
         hasOnceLoadedReportActions: boolean;
         actionBadgeTargetIndex: number;
+        hasNewerActions: boolean;
     }>({
         reportID,
         unreadMarkerReportActionIndex,
@@ -62,6 +63,7 @@ export default function useReportUnreadMessageScrollTracking({
         isFocused: true,
         hasOnceLoadedReportActions,
         actionBadgeTargetIndex,
+        hasNewerActions,
     });
     // We want to save the updated value on ref to use it in onViewableItemsChanged
     // because FlatList requires the callback to be stable and we cannot add a dependency on the useCallback.
@@ -77,6 +79,10 @@ export default function useReportUnreadMessageScrollTracking({
     useEffect(() => {
         ref.current.hasOnceLoadedReportActions = hasOnceLoadedReportActions;
     }, [hasOnceLoadedReportActions]);
+
+    useEffect(() => {
+        ref.current.hasNewerActions = hasNewerActions;
+    }, [hasNewerActions]);
 
     /**
      * On every scroll event we want to:
@@ -127,12 +133,19 @@ export default function useReportUnreadMessageScrollTracking({
         const hasUnreadMarkerReportAction = unreadActionIndex !== -1;
         const unreadActionVisible = isInverted ? unreadActionIndex >= minIndex : unreadActionIndex <= maxIndex;
 
+        // In the inverted list (primary chat view) the newest action sits at index 0.
+        // Seeing the unread marker is not sufficient to hide the pill — newer messages can still be below the fold.
+        // Only hide when the user has scrolled all the way to the newest action (minIndex === 0) and there are
+        // no more pages to load. For non-inverted lists the existing marker-visibility gate is adequate.
+        const newestActionVisible = isInverted ? minIndex === 0 : unreadActionVisible;
+        const allActionsReached = newestActionVisible && !ref.current.hasNewerActions;
+
         // display floating button if the unread report action is out of view
         if (!unreadActionVisible && hasUnreadMarkerReportAction) {
             setIsFloatingMessageCounterVisible(true);
         }
-        // hide floating button if the unread report action becomes visible
-        if (unreadActionVisible && hasUnreadMarkerReportAction) {
+        // hide floating button only when all unread messages are in view
+        if (allActionsReached && hasUnreadMarkerReportAction) {
             setIsFloatingMessageCounterVisible(false);
         }
 
