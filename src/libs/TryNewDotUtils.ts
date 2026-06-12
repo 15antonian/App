@@ -27,12 +27,12 @@ function shouldBlockOldAppExit(tryNewDot: OnyxEntry<TryNewDot>, isLoadingTryNewD
     return shouldSetNVP && isLoadingTryNewDot;
 }
 
-function isOldAppRedirectBlocked(tryNewDot: OnyxEntry<TryNewDot>, shouldRespectMobileLock: boolean): boolean {
-    return tryNewDot?.classicRedirect?.isLockedToNewDot === true || hasBeenInNewDot30Days(tryNewDot) || (shouldRespectMobileLock && isLockedToNewApp(tryNewDot));
+function isOldAppRedirectBlocked(tryNewDot: OnyxEntry<TryNewDot>, shouldRespectMobileLock: boolean, shouldCheckStaleness = true): boolean {
+    return tryNewDot?.classicRedirect?.isLockedToNewDot === true || (shouldCheckStaleness && hasBeenInNewDot30Days(tryNewDot)) || (shouldRespectMobileLock && isLockedToNewApp(tryNewDot));
 }
 
-function shouldHideOldAppRedirect(tryNewDot: OnyxEntry<TryNewDot>, isLoadingTryNewDot: boolean, shouldRespectMobileLock: boolean): boolean {
-    return (shouldRespectMobileLock && isLoadingTryNewDot) || isOldAppRedirectBlocked(tryNewDot, shouldRespectMobileLock);
+function shouldHideOldAppRedirect(tryNewDot: OnyxEntry<TryNewDot>, isLoadingTryNewDot: boolean, shouldRespectMobileLock: boolean, shouldCheckStaleness = true): boolean {
+    return (shouldRespectMobileLock && isLoadingTryNewDot) || isOldAppRedirectBlocked(tryNewDot, shouldRespectMobileLock, shouldCheckStaleness);
 }
 
 function shouldUseOldApp(tryNewDot: TryNewDot): boolean | undefined {
