@@ -2516,7 +2516,7 @@ function getApprovalModeForNewWorkspace(
     if (isSubmitWorkspace) {
         return CONST.POLICY.APPROVAL_MODE.ADVANCED;
     }
-    if (shouldEnableWorkflowsByDefault && engagementChoice !== CONST.ONBOARDING_CHOICES.TRACK_WORKSPACE) {
+    if (shouldEnableWorkflowsByDefault && !isTrackOnboardingChoice(engagementChoice)) {
         return CONST.POLICY.APPROVAL_MODE.BASIC;
     }
     return CONST.POLICY.APPROVAL_MODE.OPTIONAL;
