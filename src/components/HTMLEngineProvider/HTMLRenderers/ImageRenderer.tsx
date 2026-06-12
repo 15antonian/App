@@ -1,4 +1,4 @@
-import React, {memo} from 'react';
+import React, {memo, useEffect, useState} from 'react';
 import type {CustomRendererProps, TBlock} from 'react-native-render-html';
 import {AttachmentContext} from '@components/AttachmentContext';
 import {getButtonRole} from '@components/Button/utils';
@@ -11,7 +11,9 @@ import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
+import {getCachedAttachment} from '@userActions/Attachment';
 import {getFileName, getFileType, splitExtensionFromFileName} from '@libs/fileDownload/FileUtils';
+import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import Navigation from '@libs/Navigation/Navigation';
 import tryResolveUrlFromApiRoot from '@libs/tryResolveUrlFromApiRoot';
 import CONST from '@src/CONST';
@@ -57,7 +59,33 @@ function ImageRenderer({tnode}: CustomRendererProps<TBlock>) {
     // As a workaround, we remove the .1024.jpg or .320.jpg suffix only for .png images,
     // For other image formats, we retain the thumbnail as is to avoid unnecessary modifications.
     const processedPreviewSource = typeof previewSource === 'string' ? previewSource.replaceAll(/\.png\.(1024|320)\.jpg$/g, '.png') : previewSource;
-    const source = tryResolveUrlFromApiRoot(isAttachmentOrReceipt ? attachmentSourceAttribute : htmlAttribs.src);
+    const rawSource = tryResolveUrlFromApiRoot(isAttachmentOrReceipt ? attachmentSourceAttribute : htmlAttribs.src);
+
+    // When a blob: or file: URI is baked into the optimistic HTML, it becomes a dead link after a
+    // page reload. If the attachment was cached before the reload (via cacheAttachment), recover the
+    // source from the cache so the thumbnail and modal both work without user intervention.
+    const [onyxAttachment] = useOnyx(`${ONYXKEYS.COLLECTION.ATTACHMENT}${getNonEmptyStringOnyxID(attachmentID)}`);
+    const isDeadLocalSource = typeof rawSource === 'string' && CONST.ATTACHMENT_LOCAL_URL_PREFIX.some((prefix) => rawSource.startsWith(prefix));
+    const [recoveredSource, setRecoveredSource] = useState<string | undefined>(undefined);
+    useEffect(() => {
+        if (!attachmentID || !isDeadLocalSource) {
+            return;
+        }
+        let objectUrl: string | undefined;
+        getCachedAttachment({attachmentID, attachment: onyxAttachment, currentSource: rawSource as string}).then((resolved) => {
+            if (resolved !== rawSource) {
+                objectUrl = resolved;
+                setRecoveredSource(resolved);
+            }
+        });
+        return () => {
+            // Only object URLs (web) need to be revoked; native filesystem paths do not
+            if (objectUrl?.startsWith('blob:')) {
+                URL.revokeObjectURL(objectUrl);
+            }
+        };
+    }, [attachmentID, rawSource, onyxAttachment]);
+    const source = (isDeadLocalSource && recoveredSource) ? recoveredSource : rawSource;
 
     const alt = htmlAttribs.alt;
     const imageWidth = (htmlAttribs['data-expensify-width'] && parseInt(htmlAttribs['data-expensify-width'], 10)) || undefined;
