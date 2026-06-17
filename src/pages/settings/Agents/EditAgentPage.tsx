@@ -147,6 +147,7 @@ function EditAgentPage({route}: EditAgentPageProps) {
                     title={translate('editAgentPage.deleteAgent')}
                     icon={icons.Trashcan}
                     onPress={handleDeletePress}
+                    disabled={areActionsDisabled}
                 />
             </ScrollView>
         </ScreenWrapper>
