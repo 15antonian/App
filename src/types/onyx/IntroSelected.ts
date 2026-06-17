@@ -1,4 +1,4 @@
-import type {OnboardingInvite} from '@src/CONST';
+import type {OnboardingAccounting, OnboardingInvite} from '@src/CONST';
 import type {OnboardingPurpose} from './index';
 
 /** The tasks of IntroSelected model */
@@ -41,6 +41,9 @@ type IntroSelected = {
 
     /** The personal track goal selected during onboarding */
     personalTrackGoal?: string;
+
+    /** The accounting integration the user selected during onboarding */
+    userReportedIntegration?: OnboardingAccounting;
 };
 
 export default IntroSelected;

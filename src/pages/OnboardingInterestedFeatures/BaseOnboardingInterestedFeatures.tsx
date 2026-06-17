@@ -185,7 +185,9 @@ function BaseOnboardingInterestedFeatures({shouldUseNativeStyles}: BaseOnboardin
             setIsLoading(true);
 
             const shouldCreateWorkspace = !onboardingPolicyID && !paidGroupPolicy;
-            const newUserReportedIntegration = selectedFeatures.some((feature) => feature === CONST.POLICY.MORE_FEATURES.ARE_CONNECTIONS_ENABLED) ? userReportedIntegration : undefined;
+            // Send the integration the user explicitly chose on the Accounting step regardless of whether
+            // they left the Connections feature toggle enabled, so the backend CRM sync always receives it.
+            const newUserReportedIntegration = userReportedIntegration ?? undefined;
             const featuresMap = features.map((feature) => ({
                 ...feature,
                 enabled: selectedFeatures.includes(feature.id),

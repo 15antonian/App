@@ -11782,6 +11782,7 @@ function prepareOnboardingOnyxData({
                 addExpenseApprovals: addExpenseApprovalsTaskReportID,
                 setupTags: setupTagsTaskReportID,
                 setupCategoriesAndTags: setupCategoriesAndTagsTaskReportID,
+                userReportedIntegration: userReportedIntegration ?? undefined,
             },
         },
     );
