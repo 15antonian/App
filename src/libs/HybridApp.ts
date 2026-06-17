@@ -20,6 +20,11 @@ let currentCredentials: OnyxEntry<Credentials>;
 let currentSession: OnyxEntry<Session>;
 let currentAccount: OnyxEntry<Account>;
 
+// Prevents concurrent calls to HybridAppModule.signInToOldDot when multiple Onyx subscribers
+// fire in quick succession. The autoAuthState guard below does not cover this path — SIGNING_IN
+// is only written by the magic-link flow, not by signInToOldDot — so a synchronous flag is needed.
+let isSigningInToOldDot = false;
+
 Onyx.connectWithoutView({
     key: ONYXKEYS.HYBRID_APP,
     callback: (hybridApp) => {
@@ -47,6 +52,9 @@ Onyx.connectWithoutView({
 Onyx.connectWithoutView({
     key: ONYXKEYS.SESSION,
     callback: (session: OnyxEntry<Session>) => {
+        if (session?.accountID !== currentSession?.accountID) {
+            isSigningInToOldDot = false;
+        }
         currentSession = session;
         signInToOldDotAndChooseExperience(currentHybridApp, currentTryNewDot, currentCredentials, session, currentAccount);
     },
@@ -100,6 +108,11 @@ function signInToOldDotAndChooseExperience(
     if (session?.autoAuthState === CONST.AUTO_AUTH_STATE.SIGNING_IN) {
         return;
     }
+
+    if (isSigningInToOldDot) {
+        return;
+    }
+    isSigningInToOldDot = true;
 
     Log.info(`[HybridApp] Performing sign-in on OldDot side`);
     HybridAppModule.signInToOldDot({
