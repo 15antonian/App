@@ -100,6 +100,7 @@ import {
     getCurrency,
     getDescription,
     getDistanceInMeters,
+    getExchangeRate,
     getFormattedCreated,
     getOriginalAmountForDisplay,
     getOriginalTransactionWithSplitInfo,
@@ -560,6 +561,7 @@ function MoneyRequestView({
     const shouldShowConvertedAmount =
         transactionConvertedAmount &&
         currency !== moneyRequestReport?.currency &&
+        !!getExchangeRate(transaction, moneyRequestReport?.currency) &&
         !isFromCardImport &&
         transaction?.reportID !== CONST.REPORT.UNREPORTED_REPORT_ID &&
         !isFromMergeTransaction &&
