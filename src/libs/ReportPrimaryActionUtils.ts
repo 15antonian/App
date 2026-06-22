@@ -180,7 +180,7 @@ function isApproveAction(report: Report, reportTransactions: Transaction[], curr
     const isSubmitWorkspace = isSubmitPolicy(policy);
     const isApprovalEnabled = policy?.approvalMode && policy.approvalMode !== CONST.POLICY.APPROVAL_MODE.OPTIONAL;
 
-    if (!isExpenseReport || reportTransactions.length === 0) {
+    if (!isExpenseReport) {
         return false;
     }
 
@@ -188,11 +188,19 @@ function isApproveAction(report: Report, reportTransactions: Transaction[], curr
         return false;
     }
 
-    if (reportTransactions.length > 0 && reportTransactions.every((transaction) => isPending(transaction))) {
+    // Allow the approve action when the report is already in submitted state even if the approver's
+    // transaction collection hasn't been pushed yet. The report's stateNum/statusNum and managerID
+    // are written atomically in the submission event, so they are authoritative before transactions arrive.
+    const isProcessingReport = isProcessingReportUtils(report);
+    if (reportTransactions.length === 0) {
+        return isProcessingReport;
+    }
+
+    if (reportTransactions.every((transaction) => isPending(transaction))) {
         return false;
     }
 
-    return isProcessingReportUtils(report);
+    return isProcessingReport;
 }
 
 function isPrimaryPayAction({
