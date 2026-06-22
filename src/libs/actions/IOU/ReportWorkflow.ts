@@ -426,7 +426,7 @@ function approveMoneyRequest(params: ApproveMoneyRequestFunctionParams) {
         const upgradeFeatureAlias = CONST.UPGRADE_FEATURE_INTRO_MAPPING.approvalSubmitReport.alias;
         const backTo = Navigation.getActiveRoute() || ROUTES.REPORT_WITH_ID.getRoute(expenseReport.reportID);
 
-        Navigation.navigate(ROUTES.WORKSPACE_UPGRADE.getRoute(policyToUpgrade.id, upgradeFeatureAlias, backTo, expenseReport.reportID));
+        Navigation.navigate(ROUTES.WORKSPACE_UPGRADE.getRoute(policyToUpgrade.id, upgradeFeatureAlias, backTo, expenseReport.reportID, CONST.POLICY.TYPE.TEAM));
         return;
     }
 

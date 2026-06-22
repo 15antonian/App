@@ -316,7 +316,7 @@ function handleActionButtonPress({
                     const upgradeFeatureAlias = CONST.UPGRADE_FEATURE_INTRO_MAPPING.approvalSubmitReport.alias;
                     const backTo = Navigation.getActiveRoute() || ROUTES.SEARCH_ROOT.route;
 
-                    Navigation.navigate(ROUTES.WORKSPACE_UPGRADE.getRoute(policyToUpgrade.id, upgradeFeatureAlias, backTo, item.reportID));
+                    Navigation.navigate(ROUTES.WORKSPACE_UPGRADE.getRoute(policyToUpgrade.id, upgradeFeatureAlias, backTo, item.reportID, CONST.POLICY.TYPE.TEAM));
                     return;
                 }
             }
