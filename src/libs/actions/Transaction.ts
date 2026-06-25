@@ -1152,10 +1152,37 @@ function changeTransactionsReport({
             if (duplicateTransactionIDs) {
                 for (const id of duplicateTransactionIDs) {
                     const siblingViolations = allTransactionViolation?.[`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${id}`] ?? [];
+                    const siblingDuplicateViolation = siblingViolations.find((v) => v.name === CONST.VIOLATIONS.DUPLICATED_TRANSACTION);
+                    const remainingDuplicateIDs = siblingDuplicateViolation?.data?.duplicates?.filter((dupID) => dupID !== transaction.transactionID) ?? [];
+
+                    // Reduce the sibling's duplicate list rather than stripping the entire violation —
+                    // the sibling may still be a duplicate of other transactions not involved in this move.
+                    const cleanedSiblingViolations = siblingViolations.filter((v) => v.name !== CONST.VIOLATIONS.DUPLICATED_TRANSACTION);
+                    if (remainingDuplicateIDs.length > 0 && siblingDuplicateViolation) {
+                        cleanedSiblingViolations.push({
+                            ...siblingDuplicateViolation,
+                            data: {...siblingDuplicateViolation.data, duplicates: remainingDuplicateIDs},
+                        });
+                    }
+                    const cleanedSiblingValue = cleanedSiblingViolations.length > 0 ? cleanedSiblingViolations : null;
+
                     optimisticData.push({
                         onyxMethod: Onyx.METHOD.SET,
                         key: `${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${id}`,
-                        value: siblingViolations.filter((violation) => violation.name !== CONST.VIOLATIONS.DUPLICATED_TRANSACTION),
+                        value: cleanedSiblingValue,
+                    });
+                    // Re-apply the cleaned value on success so that a stale OpenReport response
+                    // landing between the optimistic apply and the server response cannot
+                    // re-introduce the one-sided violation.
+                    successData.push({
+                        onyxMethod: Onyx.METHOD.SET,
+                        key: `${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${id}`,
+                        value: cleanedSiblingValue,
+                    });
+                    failureData.push({
+                        onyxMethod: Onyx.METHOD.SET,
+                        key: `${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${id}`,
+                        value: siblingViolations,
                     });
                 }
             }
